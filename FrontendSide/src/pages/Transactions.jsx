@@ -122,12 +122,18 @@ export default function Transactions() {
       setTransactions(prev => prev.map(t => t._id === updatedTransaction._id ? updatedTransaction : t));
     };
 
+    const handleDeletedTransaction = (deletedId) => {
+      setTransactions(prev => prev.filter(t => t._id !== deletedId));
+    };
+
     socket.on("transaction_created", handleNewTransaction);
     socket.on("transaction_updated", handleUpdatedTransaction);
+    socket.on("transaction_deleted", handleDeletedTransaction);
 
     return () => {
       socket.off("transaction_created", handleNewTransaction);
       socket.off("transaction_updated", handleUpdatedTransaction);
+      socket.off("transaction_deleted", handleDeletedTransaction);
     };
   }, [socket]);
 

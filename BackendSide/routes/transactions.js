@@ -464,6 +464,11 @@ router.delete("/:id", async (req, res) => {
   try {
     const transaction = await Transaction.findByIdAndDelete(req.params.id);
     if (!transaction) return res.status(404).json({ message: "Transaction not found" });
+    
+    // Emit real-time event
+    const io = req.app.get("io");
+    if (io) io.emit("transaction_deleted", req.params.id);
+
     res.json({ message: "Transaction deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });
