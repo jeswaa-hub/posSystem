@@ -175,7 +175,7 @@ export default function Products() {
       </div>
 
       {/* Header & Filter */}
-      <div className="bg-dark-800 p-6 rounded-3xl border border-dark-700 shadow-xl flex items-center gap-4">
+      <div className="bg-dark-800 p-6 rounded-3xl border border-dark-700 shadow-xl flex flex-col md:flex-row gap-4 md:items-center">
         <div className="relative flex-1">
           <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input 

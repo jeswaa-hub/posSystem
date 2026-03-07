@@ -10,7 +10,8 @@ import {
   QrCodeIcon,
   CubeIcon,
   TagIcon,
-  FunnelIcon // Add FunnelIcon
+  FunnelIcon,
+  XMarkIcon
 } from "@heroicons/react/24/outline";
 import { useNotification } from "../contexts/NotificationContext";
 import { useSettings } from "../contexts/SettingsContext";
@@ -43,6 +44,7 @@ export default function POS() {
   const [orderNumber, setOrderNumber] = useState(() => Math.floor(Math.random() * 9000) + 1000);
   const [isFilterOpen, setIsFilterOpen] = useState(false); // State for custom filter dropdown
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false); // Mobile cart toggle
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
@@ -190,9 +192,24 @@ export default function POS() {
   const total = subtotal + tax;
 
   return (
-    <div className="flex h-full gap-6 p-2">
+    <div className="flex flex-col lg:flex-row h-full gap-6 p-2 relative overflow-hidden">
+      {/* Mobile Cart Toggle */}
+      <button 
+        onClick={() => setIsCartOpen(!isCartOpen)}
+        className="lg:hidden fixed bottom-20 right-6 z-40 bg-accent text-white p-4 rounded-full shadow-2xl shadow-accent/40 flex items-center justify-center transition-transform active:scale-95"
+      >
+        <div className="relative">
+          <ShoppingBagIcon className="w-6 h-6" />
+          {cart.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-dark-800">
+              {cart.reduce((acc, item) => acc + item.quantity, 0)}
+            </span>
+          )}
+        </div>
+      </button>
+
       {/* Left Column: Product Selection */}
-      <div className="flex-1 flex flex-col gap-6">
+      <div className="flex-1 flex flex-col gap-6 overflow-hidden h-full">
         {/* Search & Categories */}
         <div className="bg-dark-800 p-6 rounded-3xl border border-dark-700 shadow-xl flex items-center gap-4">
           <div className="relative flex-1">
@@ -250,7 +267,7 @@ export default function POS() {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pr-2 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 pr-2 custom-scrollbar pb-24 lg:pb-0">
           {filteredProducts.map(product => {
             const cartItem = cart.find(item => item._id === product._id);
             const isOutOfStock = product.stock <= 0;
@@ -339,11 +356,31 @@ export default function POS() {
         </div>
       </div>
 
+      {/* Overlay for mobile cart */}
+      {isCartOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-dark-950/80 backdrop-blur-sm z-40 transition-opacity"
+          onClick={() => setIsCartOpen(false)}
+        />
+      )}
+
       {/* Right Column: Order Cart */}
-      <div className="w-96 flex flex-col bg-dark-800 rounded-3xl border border-dark-700 shadow-2xl overflow-hidden">
+      <div className={`
+        fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-dark-900 lg:static lg:bg-dark-800 lg:w-96 
+        flex flex-col lg:rounded-3xl border-l lg:border border-dark-700 shadow-2xl overflow-hidden 
+        transition-transform duration-300 ease-in-out transform
+        ${isCartOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
+      `}>
         {/* Header */}
         <div className="p-6 border-b border-dark-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {/* Close Button for Mobile */}
+            <button 
+              onClick={() => setIsCartOpen(false)}
+              className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
             <div className="bg-accent/20 p-2 rounded-xl">
               <ShoppingBagIcon className="w-6 h-6 text-accent" />
             </div>

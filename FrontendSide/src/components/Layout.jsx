@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../contexts/NotificationContext";
 import { useSettings } from "../contexts/SettingsContext";
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { 
   Squares2X2Icon,
@@ -30,7 +30,9 @@ import {
   IdentificationIcon,
   BanknotesIcon,
   TrashIcon,
-  CheckIcon
+  CheckIcon,
+  Bars3Icon,
+  XMarkIcon
 } from "@heroicons/react/24/solid";
 
 export default function Layout() {
@@ -41,13 +43,19 @@ export default function Layout() {
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [openDropdowns, setOpenDropdowns] = useState({});
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const toggleDropdown = (label) => {
     setOpenDropdowns(prev => ({
       ...prev,
       [label]: !prev[label]
     }));
-    if (!isExpanded) setIsExpanded(true);
+    if (!isExpanded && !isMobileMenuOpen) setIsExpanded(true);
   };
 
   const handleLogout = () => {
@@ -99,12 +107,39 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-dark-900 text-text-primary overflow-hidden">
+      {/* Mobile Menu Button */}
+      <button 
+        className="lg:hidden fixed top-4 left-4 z-[70] p-2 bg-dark-800 text-white rounded-lg shadow-lg border border-dark-700"
+        onClick={() => setIsMobileMenuOpen(true)}
+      >
+        <Bars3Icon className="w-6 h-6" />
+      </button>
+
+      {/* Sidebar Overlay for Mobile */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-[60] lg:hidden backdrop-blur-sm"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside 
-        className={`relative z-[60] flex flex-col h-full transition-all duration-300 ease-in-out ${isExpanded ? 'w-64' : 'w-24'}`}
+        className={`fixed lg:relative z-[70] flex flex-col h-full transition-all duration-300 ease-in-out 
+          ${isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'} 
+          ${isExpanded ? 'lg:w-64' : 'lg:w-24'}
+        `}
       >
+        {/* Close Button for Mobile */}
+        <button 
+          className="lg:hidden absolute top-4 right-4 text-gray-400 hover:text-white"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <XMarkIcon className="w-6 h-6" />
+        </button>
+
         {/* Organic Curved Background Strip */}
-        <div className={`absolute top-0 left-0 bottom-0 transition-all duration-300 ease-in-out z-0 ${isExpanded ? 'w-full' : 'w-24'}`}>
+        <div className={`absolute top-0 left-0 bottom-0 transition-all duration-300 ease-in-out z-0 w-full`}>
           <div className="w-full h-full bg-dark-800 rounded-r-3xl shadow-2xl shadow-black/50 overflow-hidden relative">
             {/* Wavy/Organic Overlay Effect */}
             <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-white/5 to-transparent skew-x-3 blur-xl opacity-30" />
@@ -112,10 +147,10 @@ export default function Layout() {
           </div>
         </div>
         
-        {/* Toggle Button */}
+        {/* Toggle Button (Desktop Only) */}
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
-          className="absolute right-0 top-12 translate-x-1/2 z-50 bg-accent text-white p-2.5 rounded-full shadow-2xl border-2 border-dark-900 hover:scale-110 transition-all duration-300 group ring-4 ring-dark-900/50"
+          className="hidden lg:block absolute right-0 top-12 translate-x-1/2 z-50 bg-accent text-white p-2.5 rounded-full shadow-2xl border-2 border-dark-900 hover:scale-110 transition-all duration-300 group ring-4 ring-dark-900/50"
         >
           {isExpanded ? (
             <ChevronLeftIcon className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform stroke-[3]" />
@@ -128,7 +163,7 @@ export default function Layout() {
         <div className="relative z-10 flex flex-col h-full w-full py-6">
             
             {/* Fiery Logo */}
-            <div className={`mb-10 flex items-center group cursor-pointer ${isExpanded ? 'px-6 gap-4' : 'flex-col justify-center'}`}>
+            <div className={`mb-10 flex items-center group cursor-pointer ${isExpanded || isMobileMenuOpen ? 'px-6 gap-4' : 'flex-col justify-center'}`}>
                 <div className="w-14 h-14 relative flex-shrink-0 flex items-center justify-center">
                     {/* Flame Effect Background */}
                     <div 
@@ -147,8 +182,8 @@ export default function Layout() {
                     </div>
                 </div>
                 
-                {/* Logo Text (Visible when expanded) */}
-                <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
+                {/* Logo Text (Visible when expanded or mobile) */}
+                <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isExpanded || isMobileMenuOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden lg:flex'}`}>
                   <span className="text-xl font-bold text-white tracking-tight whitespace-nowrap">{settings?.appName || "POS System"}</span>
                   <span className="text-xs text-text-secondary whitespace-nowrap">{settings?.appSubtitle || "Admin Dashboard"}</span>
                 </div>
@@ -166,9 +201,9 @@ export default function Layout() {
                                 <>
                                     <button
                                         onClick={() => toggleDropdown(item.label)}
-                                        className={`group relative flex items-center w-full transition-all duration-300 ${isExpanded ? 'px-4 py-3' : 'justify-center py-4'}`}
+                                        className={`group relative flex items-center w-full transition-all duration-300 ${isExpanded || isMobileMenuOpen ? 'px-4 py-3' : 'justify-center py-4'}`}
                                     >
-                                        {isActive && !isExpanded && (
+                                        {isActive && !isExpanded && !isMobileMenuOpen && (
                                             <div className="absolute left-0 right-0 mx-auto w-12 h-12 bg-accent/20 rounded-xl blur-md scale-110" />
                                         )}
                                         <div className={`
@@ -180,7 +215,7 @@ export default function Layout() {
                                         `}>
                                             <item.icon className="w-6 h-6" />
                                         </div>
-                                        {isExpanded && (
+                                        {(isExpanded || isMobileMenuOpen) && (
                                             <>
                                                 <span className={`ml-4 font-medium tracking-wide flex-1 text-left ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
                                                     {item.label}
@@ -195,7 +230,7 @@ export default function Layout() {
                                     </button>
                                     
                                     {/* Dropdown Children */}
-                                    {isExpanded && isOpen && (
+                                    {(isExpanded || isMobileMenuOpen) && isOpen && (
                                         <div className="mt-1 flex flex-col gap-1 ml-4 border-l-2 border-dark-700">
                                             {item.children.map((child) => {
                                                 const isChildActive = location.pathname === child.path;
@@ -265,10 +300,10 @@ export default function Layout() {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 overflow-auto bg-dark-900 flex flex-col relative transition-all duration-300 ${isExpanded ? 'pl-0' : 'pl-16'}`}>
-        <header className="h-24 min-h-[6rem] flex items-center justify-between px-8 py-6 sticky top-0 z-20 bg-dark-900/80 backdrop-blur-md border-b border-dark-700/50">
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
+      <main className={`flex-1 overflow-auto bg-dark-900 flex flex-col relative transition-all duration-300 w-full`}>
+        <header className="h-20 md:h-24 min-h-[5rem] flex items-center justify-between px-4 md:px-8 py-4 md:py-6 sticky top-0 z-20 bg-dark-900/80 backdrop-blur-md border-b border-dark-700/50">
+          <div className="ml-12 lg:ml-0">
+            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
               {(() => {
                 const currentItem = menuItems.find(i => i.path === location.pathname);
                 if (currentItem) return currentItem.label;
