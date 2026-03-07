@@ -30,8 +30,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-dark-800 p-8 rounded-xl shadow-2xl border border-dark-700">
+    <div className="min-h-screen bg-dark-900 flex items-center justify-center p-4 sm:p-6">
+      <div className="max-w-md w-full bg-dark-800 p-6 sm:p-8 rounded-2xl shadow-2xl border border-dark-700">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-accent/20 text-accent mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">

@@ -128,10 +128,10 @@ export default function Settings() {
   ];
 
   return (
-    <div className="max-w-[1600px] mx-auto h-[calc(100vh-100px)] flex flex-col md:flex-row gap-8 overflow-hidden">
+    <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row gap-6 md:gap-8 h-[calc(100vh-140px)] md:h-[calc(100vh-160px)] overflow-hidden">
       
       {/* Sidebar Navigation */}
-      <div className="w-full md:w-64 lg:w-72 bg-dark-800 rounded-3xl border border-dark-700 shadow-xl p-4 flex flex-col h-fit md:h-full">
+      <div className="w-full md:w-64 lg:w-72 bg-dark-800 rounded-3xl border border-dark-700 shadow-xl p-4 flex flex-col flex-shrink-0">
         <h2 className="text-xl font-black text-white px-4 py-4 mb-2 tracking-tight">Settings</h2>
         <div className="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0 custom-scrollbar">
           {menuItems.map((item) => {
@@ -156,8 +156,8 @@ export default function Settings() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 bg-dark-800 rounded-3xl border border-dark-700 shadow-xl overflow-hidden flex flex-col">
-        <div className="p-8 overflow-y-auto custom-scrollbar h-full">
+      <div className="flex-1 bg-dark-800 rounded-3xl border border-dark-700 shadow-xl overflow-hidden flex flex-col h-full">
+        <div className="p-4 md:p-8 overflow-y-auto custom-scrollbar h-full">
           
           {/* General & Branding Section */}
           {activeTab === 'general' && (

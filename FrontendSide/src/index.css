@@ -3,8 +3,15 @@
 @config "../tailwind.config.js";
 
 @layer base {
+  html, body {
+    @apply h-full overflow-hidden; /* Prevent body scroll, let layout handle it */
+  }
   body {
-    @apply bg-dark-900 text-text-primary;
+    @apply bg-dark-900 text-text-primary antialiased;
+  }
+  /* Improve tap highlight on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
