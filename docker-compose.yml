@@ -1,0 +1,7 @@
+services:
+  pos-system:
+    build:
+      context: .
+    ports:
+      - "5020:5020"
+      - "5021:5021"
