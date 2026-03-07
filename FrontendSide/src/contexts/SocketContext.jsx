@@ -7,7 +7,7 @@ export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
   const socket = useMemo(() => {
-    return io("http://localhost:5000", {
+    return io("https://samokivalley.springbullbars.shop", {
       transports: ["websocket"],
       autoConnect: true,
     });
