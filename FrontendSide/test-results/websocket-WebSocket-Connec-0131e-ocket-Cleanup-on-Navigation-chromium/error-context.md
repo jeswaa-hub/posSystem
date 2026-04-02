@@ -1,0 +1,186 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - button [ref=e9]:
+        - img [ref=e10]
+      - generic [ref=e12]:
+        - generic [ref=e13] [cursor=pointer]:
+          - generic [ref=e17]: S
+          - generic:
+            - generic: POS System
+            - generic: Admin Dashboard
+        - navigation [ref=e19]:
+          - link [ref=e21] [cursor=pointer]:
+            - /url: /
+            - img [ref=e24]
+          - link [ref=e27] [cursor=pointer]:
+            - /url: /pos
+            - img [ref=e29]
+          - link [ref=e32] [cursor=pointer]:
+            - /url: /transactions
+            - img [ref=e34]
+          - button [ref=e38]:
+            - img [ref=e40]
+          - link [ref=e43] [cursor=pointer]:
+            - /url: /inventory
+            - img [ref=e45]
+          - button [ref=e48]:
+            - img [ref=e50]
+          - link [ref=e53] [cursor=pointer]:
+            - /url: /users
+            - img [ref=e55]
+          - link [ref=e59] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e61]
+        - button [ref=e65]:
+          - img [ref=e66]
+    - main [ref=e68]:
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - heading "Dashboard" [level=1] [ref=e71]
+          - paragraph [ref=e72]: Sun Mar 08 2026
+        - generic [ref=e74]:
+          - textbox "Search..." [ref=e75]
+          - img [ref=e76]
+        - generic [ref=e78]:
+          - generic [ref=e79]:
+            - paragraph [ref=e80]: Test Admin
+            - paragraph [ref=e81]: admin
+          - generic [ref=e83]: T
+          - button [ref=e85]:
+            - img [ref=e86]
+      - generic [ref=e89]:
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - heading "Dashboard" [level=2] [ref=e92]
+            - paragraph [ref=e93]: Real-time performance overview ng store
+          - generic [ref=e94]:
+            - generic [ref=e95]:
+              - img [ref=e96]
+              - text: Date Range
+            - generic [ref=e98]:
+              - button "Today" [ref=e99]
+              - button "Yesterday" [ref=e100]
+              - button "Last 7 Days" [ref=e101]
+              - button "Last 30 Days" [ref=e102]
+              - button "This Month" [ref=e103]
+              - button "Custom" [ref=e104]
+        - generic [ref=e105]:
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - generic [ref=e109]: Total Revenue
+              - generic [ref=e110]: ₱0
+            - img [ref=e112]
+          - generic [ref=e115]:
+            - generic [ref=e116]:
+              - generic [ref=e117]: Total Profit
+              - generic [ref=e118]: ₱0
+            - img [ref=e120]
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - generic [ref=e125]: Transactions
+              - generic [ref=e126]: "0"
+            - img [ref=e128]
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - generic [ref=e133]: Avg Ticket
+              - generic [ref=e134]: ₱0
+            - img [ref=e136]
+        - generic [ref=e138]:
+          - generic [ref=e139]:
+            - generic [ref=e140]:
+              - generic [ref=e141]:
+                - generic [ref=e142]: Sales Trends
+                - generic [ref=e143]: Daily / Weekly / Monthly
+              - generic [ref=e144]:
+                - button "day" [ref=e145]
+                - button "week" [ref=e146]
+                - button "month" [ref=e147]
+            - generic [ref=e150]:
+              - list [ref=e152]:
+                - listitem [ref=e153]:
+                  - img "Profit legend icon" [ref=e154]
+                  - text: Profit
+                - listitem [ref=e156]:
+                  - img "Revenue legend icon" [ref=e157]
+                  - text: Revenue
+                - listitem [ref=e159]:
+                  - img "Transactions legend icon" [ref=e160]
+                  - text: Transactions
+              - application [ref=e162]
+          - generic [ref=e167]:
+            - generic [ref=e168]:
+              - generic [ref=e169]: Revenue vs Profit
+              - generic [ref=e170]: Gross revenue vs net profit
+            - generic [ref=e173]:
+              - list [ref=e175]:
+                - listitem [ref=e176]:
+                  - img "Profit legend icon" [ref=e177]
+                  - text: Profit
+                - listitem [ref=e179]:
+                  - img "Revenue legend icon" [ref=e180]
+                  - text: Revenue
+              - application [ref=e182]
+        - generic [ref=e187]:
+          - generic [ref=e188]:
+            - generic [ref=e189]:
+              - generic [ref=e190]: Top Selling Products
+              - generic [ref=e191]: Popular items
+            - application [ref=e195]
+          - generic [ref=e200]:
+            - generic [ref=e201]:
+              - generic [ref=e202]: Sales by Category
+              - generic [ref=e203]: Revenue Distribution
+            - application [ref=e207]
+        - generic [ref=e208]:
+          - generic [ref=e209]:
+            - generic [ref=e210]:
+              - generic [ref=e211]:
+                - generic [ref=e212]: Peak Hours
+                - generic [ref=e213]: Busy times (area chart)
+              - img [ref=e215]
+            - application [ref=e220]:
+              - generic [ref=e231]:
+                - generic [ref=e232]:
+                  - generic [ref=e234]: "0"
+                  - generic [ref=e236]: "1"
+                  - generic [ref=e238]: "2"
+                  - generic [ref=e240]: "3"
+                  - generic [ref=e242]: "4"
+                  - generic [ref=e244]: "5"
+                  - generic [ref=e246]: "6"
+                  - generic [ref=e248]: "7"
+                  - generic [ref=e250]: "8"
+                  - generic [ref=e252]: "9"
+                  - generic [ref=e254]: "10"
+                  - generic [ref=e256]: "11"
+                  - generic [ref=e258]: "12"
+                  - generic [ref=e260]: "13"
+                  - generic [ref=e262]: "14"
+                  - generic [ref=e264]: "15"
+                  - generic [ref=e266]: "16"
+                  - generic [ref=e268]: "17"
+                  - generic [ref=e270]: "18"
+                  - generic [ref=e272]: "19"
+                  - generic [ref=e274]: "20"
+                  - generic [ref=e276]: "21"
+                  - generic [ref=e278]: "22"
+                  - generic [ref=e280]: "23"
+                - generic [ref=e281]:
+                  - generic [ref=e283]: "0"
+                  - generic [ref=e285]: "1"
+                  - generic [ref=e287]: "2"
+                  - generic [ref=e289]: "3"
+                  - generic [ref=e291]: "4"
+          - generic [ref=e292]:
+            - generic [ref=e293]:
+              - generic [ref=e294]:
+                - generic [ref=e295]: Payment Method Distribution
+                - generic [ref=e296]: Cash vs GCash/Maya vs Card
+              - img [ref=e298]
+            - application [ref=e303]
+  - generic [ref=e304]: "0"
+```

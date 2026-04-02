@@ -4,7 +4,8 @@ const resolveMongoUri = () =>
   process.env.MONGO_URI ||
   process.env.MONGODB_URI ||
   process.env.DB_URI ||
-  "mongodb://pos:sLcu854HFMGonvEY1g3H@103.125.219.175:27018";
+  "mongodb+srv://jeswaa1810_db_user:joshua$1234!!!@pos.bqzj0pk.mongodb.net/pos"
+  // "mongodb://localhost:27017/pos";
 
 const connectDB = async () => {
   const mongoUri = resolveMongoUri();

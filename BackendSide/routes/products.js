@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const { Product, Inventory } = require("../models");
+const { verifyToken, verifyTokenAndAdmin, verifyTokenAndAuthorization } = require("../middleware/authMiddleware");
 
-router.get("/", async (_req, res) => {
+// Public: Get all products (Used by POS and Admin)
+router.get("/", verifyToken, async (_req, res) => {
   try {
     const products = await Product.find({ isActive: true }).populate("category", "name");
     res.json(products);
@@ -11,7 +13,8 @@ router.get("/", async (_req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+// Public: Get single product
+router.get("/:id", verifyToken, async (req, res) => {
   try {
     const product = await Product.findOne({ _id: req.params.id, isActive: true }).populate("category", "name");
     if (!product) return res.status(404).json({ message: "Product not found" });
@@ -21,7 +24,10 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+// Manager/Admin/Cashier: Create Product
+router.post("/", verifyToken, async (req, res) => {
+  console.log("Create Product Request from User:", req.user.id, "Role:", req.user.role);
+  
   try {
     const product = await Product.create(req.body);
     
@@ -55,23 +61,45 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+// Manager/Admin/Cashier: Update Product
+router.patch("/:id", verifyToken, async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
     if (!product) return res.status(404).json({ message: "Product not found" });
-    req.app.get("io").emit("product_updated", product);
+    
+    // Sync Inventory if stock is provided
+    if (req.body.stock !== undefined) {
+      await Inventory.findOneAndUpdate({ product: product._id }, { stockOnHand: req.body.stock });
+    }
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("product_updated", product);
+    }
+
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.delete("/:id", async (req, res) => {
+// Manager/Admin: Delete Product (Soft delete)
+router.delete("/:id", verifyToken, async (req, res) => {
+  // Allow Admin and Manager
+  if (req.user.role !== "admin" && req.user.role !== "manager") {
+    return res.status(403).json({ message: "You are not allowed to delete products!" });
+  }
+
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, { isActive: false }, { returnDocument: 'after' });
+    const product = await Product.findByIdAndUpdate(req.params.id, { isActive: false });
     if (!product) return res.status(404).json({ message: "Product not found" });
-    req.app.get("io").emit("product_deleted", req.params.id);
-    res.json({ message: "Product deactivated" });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("product_deleted", { _id: req.params.id });
+    }
+
+    res.json({ message: "Product deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

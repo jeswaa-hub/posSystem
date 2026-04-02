@@ -11,6 +11,7 @@ import PrintableReport from "../components/PrintableReport";
 import { useAuth } from "../contexts/AuthContext";
 import { useReactToPrint } from "react-to-print";
 import { useSocket } from "../contexts/SocketContext";
+import InventorySkeleton from "../components/skeletons/InventorySkeleton";
 
 export default function InventoryReport() {
   const { user } = useAuth();
@@ -59,6 +60,8 @@ export default function InventoryReport() {
       socket.off("product_updated", handler);
     };
   }, [socket]);
+
+  if (loading) return <InventorySkeleton />;
 
   const formatCurrency = (val) => `₱${Number(val).toLocaleString()}`;
 

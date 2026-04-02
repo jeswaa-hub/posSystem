@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const { Transaction, Product, Inventory, InventoryLog, Settings } = require("../models");
+const { verifyToken, verifyTokenAndAdmin } = require("../middleware/authMiddleware");
 
 const parseDate = (value) => {
   if (!value) return null;
@@ -16,7 +17,7 @@ const endOfDay = (d) => {
   return copy;
 };
 
-router.get("/dashboard", async (req, res) => {
+router.get("/dashboard", verifyToken, async (req, res) => {
   try {
     const startRaw = parseDate(req.query.start);
     const endRaw = parseDate(req.query.end);
@@ -192,7 +193,7 @@ router.get("/dashboard", async (req, res) => {
   }
 });
 
-router.get("/", async (_req, res) => {
+router.get("/", verifyToken, async (req, res) => {
   try {
     const transactions = await Transaction.find()
       .populate("items.product", "name sku")
@@ -218,9 +219,11 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", verifyToken, async (req, res) => {
   try {
-    const { items, customer, customerName, paymentMethod, notes, cashier } = req.body;
+    const { items, customer, customerName, paymentMethod, notes, cashier: cashierId } = req.body;
+    const io = req.app.get("io");
+    const cashier = cashierId || req.user.id;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "No items in transaction" });
@@ -244,40 +247,39 @@ router.post("/", async (req, res) => {
         for (const ingredient of product.recipe) {
           const invItem = await Inventory.findOne({ product: ingredient.ingredient });
           const currentQty = invItem ? invItem.stockOnHand : 0;
+          const reservedQty = invItem ? (invItem.reservedStock || 0) : 0;
+          const availableQty = currentQty - reservedQty;
           const neededQty = ingredient.quantity * it.quantity;
           
-          if (currentQty < neededQty) {
+          if (availableQty < neededQty) {
              const ingProd = await Product.findById(ingredient.ingredient);
-             throw new Error(`Insufficient stock for ingredient: ${ingProd ? ingProd.name : 'Unknown'} (Needed: ${neededQty}, Available: ${currentQty})`);
+             throw new Error(`Insufficient stock for ingredient: ${ingProd ? ingProd.name : 'Unknown'} (Needed: ${neededQty}, Available: ${availableQty})`);
           }
         }
-        // Stock for the main product is virtual or just tracking sales count, so we don't strictly block if its own count is 0,
-        // unless we want to track prepared items. For now, let's assume made-to-order, so stock check is on ingredients.
-        stockAvailable = 9999; // Virtual infinite stock if ingredients are enough
+        // Stock for the main product is virtual or just tracking sales count
+        stockAvailable = 9999; 
       } else {
         // Direct stock check
         let inventory = await Inventory.findOne({ product: it.product });
         
-        // Prioritize Inventory record if it exists, but if it's 0, check if Product has stock
-        // This handles cases where Inventory was created with 0 but Product was updated separately
         if (inventory) {
-           stockAvailable = inventory.stockOnHand;
+           const reserved = inventory.reservedStock || 0;
+           stockAvailable = inventory.stockOnHand - reserved;
            
-           // Desync fix: If Inventory says 0 but Product says > 0, trust Product and sync Inventory
-           if (stockAvailable === 0 && product.stock > 0) {
+           // Desync fix
+           if (inventory.stockOnHand === 0 && product.stock > 0) {
               console.log(`Stock Desync detected for ${product.name}. Syncing Inventory from Product...`);
-              stockAvailable = product.stock;
-              // We will update inventory later during deduction
+              inventory.stockOnHand = product.stock;
+              await inventory.save();
+              stockAvailable = inventory.stockOnHand - reserved;
            }
         } else {
-           // Fallback if no inventory record exists
            stockAvailable = product.stock || 0;
         }
 
-        // Debug log
-        console.log(`Checking stock for ${product.name}: Available=${stockAvailable}, Requested=${it.quantity}`);
+        console.log(`Checking available stock for ${product.name}: Available=${stockAvailable}, Requested=${it.quantity}`);
 
-        if (stockAvailable < it.quantity) throw new Error(`Insufficient stock for ${product.name} (Available: ${stockAvailable})`);
+        if (stockAvailable < it.quantity) throw new Error(`Insufficient available stock for ${product.name} (Available: ${stockAvailable}, Reserved: ${inventory?.reservedStock || 0})`);
       }
 
       const cost = Number(product.cost || 0);
@@ -335,73 +337,63 @@ router.post("/", async (req, res) => {
 
     const createdTxn = transaction;
 
-    // Deduct stock and log
+    // Reserve stock and log
     for (const it of enrichedItems) {
       if (it.hasRecipe) {
-        // Deduct Ingredients
-        for (const ingredient of it.recipe) {
-           const deductQty = ingredient.quantity * it.quantity;
-           const invItem = await Inventory.findOne({ product: ingredient.ingredient });
-           
-           if (invItem) {
-             const oldQty = invItem.stockOnHand;
-             const newQty = oldQty - deductQty;
-             invItem.stockOnHand = newQty;
-             await invItem.save();
+        // Reserve Ingredients
+        if (it.recipe && it.recipe.length > 0) {
+          for (const ingredient of it.recipe) {
+             const reserveQty = ingredient.quantity * it.quantity;
+             const invItem = await Inventory.findOne({ product: ingredient.ingredient });
              
-             // Create Log for Ingredient
-             await InventoryLog.create({
-                product: ingredient.ingredient,
-                user: cashier,
-                type: 'sale',
-                reason: `Sale: ${createdTxn.transactionId} (Used in ${it.quantity}x Product ${it.product})`,
-                oldQuantity: oldQty,
-                newQuantity: newQty,
-                quantityChanged: -deductQty,
-              });
+             if (invItem) {
+               invItem.reservedStock = (invItem.reservedStock || 0) + reserveQty;
+               await invItem.save();
+               
+               // Create Reservation Log for Ingredient
+               await InventoryLog.create({
+                  product: ingredient.ingredient,
+                  user: cashier,
+                  type: 'adjustment',
+                  reason: `Reserved for Pending Transaction: ${createdTxn.transactionId}`,
+                  oldQuantity: invItem.stockOnHand,
+                  newQuantity: invItem.stockOnHand,
+                  quantityChanged: reserveQty,
+                  notes: "Stock Reserved"
+                });
 
-              // Sync Product stock for ingredient
-              await Product.findByIdAndUpdate(ingredient.ingredient, { stock: newQty });
-           }
-        }
-      } else {
-        // Deduct Direct Product
-        const newStock = it.currentStock - it.quantity;
-        
-        // Update Inventory
-        let inventory = await Inventory.findOne({ product: it.product });
-        if (inventory) {
-          inventory.stockOnHand = newStock;
-          await inventory.save();
-        } else {
-          // Create if missing (should not happen if initialized properly, but for safety)
-          await Inventory.create({ product: it.product, stockOnHand: newStock });
-        }
-
-        // Update Product (Legacy sync)
-        const updatedProduct = await Product.findByIdAndUpdate(
-          it.product, 
-          { stock: newStock }, 
-          { returnDocument: 'after' }
-        );
-
-        if (updatedProduct) {
-          if (updatedProduct.stock <= 0 && updatedProduct.status !== "out_of_stock") {
-            updatedProduct.status = "out_of_stock";
-            await updatedProduct.save();
+                // Emit update for ingredient
+                const updatedInv = await Inventory.findById(invItem._id).populate("product", "name sku price cost category type unit");
+                if (io) io.emit("inventory_updated", updatedInv);
+             }
           }
         }
+      } else {
+        // Reserve Direct Product
+        let inventory = await Inventory.findOne({ product: it.product });
+        if (inventory) {
+          inventory.reservedStock = (inventory.reservedStock || 0) + it.quantity;
+          await inventory.save();
+        } else {
+          // Create if missing
+          inventory = await Inventory.create({ product: it.product, stockOnHand: it.currentStock, reservedStock: it.quantity });
+        }
 
-        // Create Inventory Log
+        // Create Reservation Log
         await InventoryLog.create({
           product: it.product,
           user: cashier,
-          type: 'sale',
-          reason: `Sale: ${createdTxn.transactionId}`,
+          type: 'adjustment',
+          reason: `Reserved for Pending Transaction: ${createdTxn.transactionId}`,
           oldQuantity: it.currentStock,
-          newQuantity: newStock,
-          quantityChanged: -it.quantity,
+          newQuantity: it.currentStock,
+          quantityChanged: it.quantity,
+          notes: "Stock Reserved"
         });
+
+        // Emit update for product
+        const updatedInv = await Inventory.findById(inventory._id).populate("product", "name sku price cost category type unit");
+        if (io) io.emit("inventory_updated", updatedInv);
       }
     }
 
@@ -411,28 +403,8 @@ router.post("/", async (req, res) => {
       .populate("customer", "fullName phone")
       .populate("cashier", "fullName");
 
-    // Real-time events
-    const io = req.app.get("io");
-    if (io) {
-      io.emit("transaction_created", populatedTransaction);
-      // Emit updates
-      enrichedItems.forEach(async (it) => {
-         if (it.hasRecipe) {
-           it.recipe.forEach(async (ing) => {
-              const p = await Product.findById(ing.ingredient);
-              const inv = await Inventory.findOne({ product: ing.ingredient });
-              if (p && inv) {
-                io.emit("product_updated", p);
-                io.emit("inventory_updated", { productId: ing.ingredient, newStock: inv.stockOnHand });
-              }
-           });
-         } else {
-            const p = await Product.findById(it.product);
-            io.emit("product_updated", p);
-            io.emit("inventory_updated", { productId: it.product, newStock: it.currentStock - it.quantity });
-         }
-      });
-    }
+    // Real-time event for transaction creation
+    if (io) io.emit("transaction_created", populatedTransaction);
 
     res.status(201).json(populatedTransaction);
   } catch (err) {
@@ -441,26 +413,157 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", verifyToken, async (req, res) => {
+  // Allow Admin and Manager to update transactions
+  if (req.user.role !== "admin" && req.user.role !== "manager") {
+    return res.status(403).json({ message: "You are not allowed to update transactions!" });
+  }
+
   try {
-    const transaction = await Transaction.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true })
-      .populate("items.product", "name sku")
-      .populate("customer", "fullName phone")
-      .populate("cashier", "fullName");
+    const { status, ...otherUpdates } = req.body;
+    const oldTransaction = await Transaction.findById(req.params.id);
+    if (!oldTransaction) return res.status(404).json({ message: "Transaction not found" });
+
+    const transaction = await Transaction.findByIdAndUpdate(
+      req.params.id, 
+      req.body, 
+      { returnDocument: 'after', runValidators: true }
+    )
+    .populate("items.product", "name sku recipe")
+    .populate("customer", "fullName phone")
+    .populate("cashier", "fullName");
       
-    if (!transaction) return res.status(404).json({ message: "Transaction not found" });
+    // Handle Inventory transitions if status changed
+    if (status && status !== oldTransaction.status) {
+      const io = req.app.get("io");
+      
+      // 1. Pending -> Completed (Finalize Deduction)
+      if (oldTransaction.status === "pending" && status === "completed") {
+        for (const item of transaction.items) {
+          const product = await Product.findById(item.product);
+          if (product.recipe && product.recipe.length > 0) {
+            for (const ing of product.recipe) {
+              const reserveQty = ing.quantity * item.quantity;
+              const inv = await Inventory.findOne({ product: ing.ingredient });
+              if (inv) {
+                const oldQty = inv.stockOnHand;
+                inv.stockOnHand -= reserveQty;
+                inv.reservedStock = Math.max(0, (inv.reservedStock || 0) - reserveQty);
+                await inv.save();
+                
+                await InventoryLog.create({
+                  product: ing.ingredient,
+                  user: req.user.id,
+                  type: 'sale',
+                  reason: `Sale Finalized: ${transaction.transactionId}`,
+                  oldQuantity: oldQty,
+                  newQuantity: inv.stockOnHand,
+                  quantityChanged: -reserveQty
+                });
+                
+                await Product.findByIdAndUpdate(ing.ingredient, { stock: inv.stockOnHand });
+                const populatedInv = await Inventory.findById(inv._id).populate("product", "name sku price cost category type unit");
+                if (io) io.emit("inventory_updated", populatedInv);
+              }
+            }
+          } else {
+            const inv = await Inventory.findOne({ product: item.product });
+            if (inv) {
+              const oldQty = inv.stockOnHand;
+              inv.stockOnHand -= item.quantity;
+              inv.reservedStock = Math.max(0, (inv.reservedStock || 0) - item.quantity);
+              await inv.save();
+
+              await InventoryLog.create({
+                product: item.product,
+                user: req.user.id,
+                type: 'sale',
+                reason: `Sale Finalized: ${transaction.transactionId}`,
+                oldQuantity: oldQty,
+                newQuantity: inv.stockOnHand,
+                quantityChanged: -item.quantity
+              });
+
+              const updatedProd = await Product.findByIdAndUpdate(item.product, { stock: inv.stockOnHand }, { new: true });
+              if (updatedProd.stock <= 0) {
+                updatedProd.status = "out_of_stock";
+                await updatedProd.save();
+              }
+              
+              const populatedInv = await Inventory.findById(inv._id).populate("product", "name sku price cost category type unit");
+              if (io) {
+                io.emit("inventory_updated", populatedInv);
+                io.emit("product_updated", updatedProd);
+              }
+            }
+          }
+        }
+      }
+      
+      // 2. Pending -> Cancelled (Release Reservation)
+      if (oldTransaction.status === "pending" && status === "cancelled") {
+        for (const item of transaction.items) {
+          const product = await Product.findById(item.product);
+          if (product.recipe && product.recipe.length > 0) {
+            for (const ing of product.recipe) {
+              const reserveQty = ing.quantity * item.quantity;
+              const inv = await Inventory.findOne({ product: ing.ingredient });
+              if (inv) {
+                inv.reservedStock = Math.max(0, (inv.reservedStock || 0) - reserveQty);
+                await inv.save();
+                
+                await InventoryLog.create({
+                  product: ing.ingredient,
+                  user: req.user.id,
+                  type: 'adjustment',
+                  reason: `Reservation Released (Cancelled): ${transaction.transactionId}`,
+                  oldQuantity: inv.stockOnHand,
+                  newQuantity: inv.stockOnHand,
+                  quantityChanged: -reserveQty,
+                  notes: "Stock Unreserved"
+                });
+                
+                const populatedInv = await Inventory.findById(inv._id).populate("product", "name sku price cost category type unit");
+                if (io) io.emit("inventory_updated", populatedInv);
+              }
+            }
+          } else {
+            const inv = await Inventory.findOne({ product: item.product });
+            if (inv) {
+              inv.reservedStock = Math.max(0, (inv.reservedStock || 0) - item.quantity);
+              await inv.save();
+
+              await InventoryLog.create({
+                product: item.product,
+                user: req.user.id,
+                type: 'adjustment',
+                reason: `Reservation Released (Cancelled): ${transaction.transactionId}`,
+                oldQuantity: inv.stockOnHand,
+                newQuantity: inv.stockOnHand,
+                quantityChanged: -item.quantity,
+                notes: "Stock Unreserved"
+              });
+
+              const populatedInv = await Inventory.findById(inv._id).populate("product", "name sku price cost category type unit");
+              if (io) io.emit("inventory_updated", populatedInv);
+            }
+          }
+        }
+      }
+    }
     
-    // Emit real-time update
+    // Emit real-time update for transaction
     const io = req.app.get("io");
     if (io) io.emit("transaction_updated", transaction);
     
     res.json(transaction);
   } catch (err) {
+    console.error("PATCH Transaction Error:", err);
     res.status(500).json({ message: err.message });
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyTokenAndAdmin, async (req, res) => {
   try {
     const transaction = await Transaction.findByIdAndDelete(req.params.id);
     if (!transaction) return res.status(404).json({ message: "Transaction not found" });

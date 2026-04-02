@@ -28,6 +28,7 @@ import {
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import { useSocket } from "../contexts/SocketContext";
+import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 
 const formatPeso = (value) =>
   `₱${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -198,6 +199,8 @@ export default function Home() {
   const categoryChartData = useMemo(() => {
     return data.salesByCategory.map((c) => ({ name: c.category, value: c.sales }));
   }, [data.salesByCategory]);
+
+  if (loading) return <DashboardSkeleton />;
 
   return (
     <div className="p-2 space-y-8 animate-fade-in">

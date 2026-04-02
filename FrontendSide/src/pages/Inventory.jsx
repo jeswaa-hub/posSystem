@@ -17,6 +17,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useSettings } from "../contexts/SettingsContext";
 import api from "../services/api";
 import { useSocket } from "../contexts/SocketContext";
+import InventorySkeleton from "../components/skeletons/InventorySkeleton";
 
 const formatPeso = (amount) => {
   return `₱${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -124,12 +125,17 @@ export default function Inventory() {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("inventory_updated", (data) => {
+    socket.on("inventory_updated", (updatedItem) => {
       setInventory(prev => prev.map(item => 
-        item.product._id === data.productId 
-          ? { ...item, stockOnHand: data.newStock } 
+        item._id === updatedItem._id 
+          ? updatedItem
           : item
       ));
+
+      // Conflict detection: If this item is currently being adjusted
+      if (isAdjustModalOpen && selectedItem?._id === updatedItem._id) {
+        showNotification("Stock was updated by another user.", "warning");
+      }
     });
 
     socket.on("inventory_created", (newItem) => {
@@ -154,29 +160,38 @@ export default function Inventory() {
   const categories = ["All", "Raw Material", ...dbCategories.map(c => c.name)];
 
   const filteredInventory = inventory.filter(item => {
-    const isIngredient =
-      item.product?.type === "ingredient" ||
-      item.product?.category?.name === "Raw Material" ||
-      item.product?.category === "Raw Material";
+    // 1. First, strictly filter for Raw Materials / Ingredients
+    const isIngredient = 
+      item.product?.type === 'ingredient' || 
+      item.product?.category === "Raw Material" || 
+      item.product?.category?.name === "Raw Material";
+      
     if (!isIngredient) return false;
 
+    // 2. Filter by Search
     const matchesSearch = (item.product?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.product?.sku || "").toLowerCase().includes(searchQuery.toLowerCase());
     
-    if (activeCategory === "All") return matchesSearch;
+    if (!matchesSearch) return false;
+
+    // 3. Filter by Category (Sub-categories of raw materials, if any)
+    if (activeCategory === "All" || activeCategory === "Raw Material") return true;
     
-    // "Raw Material" category logic
-    if (activeCategory === "Raw Material") return matchesSearch && item.product?.type === 'ingredient';
-    
-    // For other categories
-    const prodCat = item.product?.category?.name || item.product?.category || item.product?.category || "";
-    return matchesSearch && (prodCat === activeCategory || item.product?.category === activeCategory);
+    const prodCat = item.product?.category?.name || item.product?.category || "";
+    return prodCat === activeCategory;
   });
 
-  // Derived Metrics
-  const totalStockValue = inventory.reduce((acc, item) => acc + (item.stockOnHand * (item.product?.cost || 0)), 0);
-  const lowStockCount = inventory.filter(item => item.stockOnHand <= (item.reorderPoint || 5)).length;
-  const totalItems = inventory.length;
+  // Derived Metrics (Calculated ONLY from Raw Materials)
+  // We re-calculate based on the full list of INGREDIENTS, ignoring the search filter for the top cards
+  const allIngredients = inventory.filter(item => 
+      item.product?.type === 'ingredient' || 
+      item.product?.category === "Raw Material" || 
+      item.product?.category?.name === "Raw Material"
+  );
+
+  const totalStockValue = allIngredients.reduce((acc, item) => acc + (item.stockOnHand * (item.product?.cost || 0)), 0);
+  const lowStockCount = allIngredients.filter(item => item.stockOnHand <= (item.reorderPoint || 5)).length;
+  const totalItems = allIngredients.length;
 
   const handleAdjustClick = (item) => {
     setSelectedItem(item);
@@ -206,7 +221,24 @@ export default function Inventory() {
       return;
     }
 
+    const backup = [...inventory];
     try {
+      // Optimistic update
+      setInventory(prev => prev.map(item => {
+        if (item._id === selectedItem._id) {
+          const oldQty = item.stockOnHand;
+          let newQty = oldQty;
+          if (adjustForm.type === 'set') {
+            newQty = qty;
+          } else {
+            newQty = oldQty + qty;
+          }
+          return { ...item, stockOnHand: newQty };
+        }
+        return item;
+      }));
+      setIsAdjustModalOpen(false);
+
       await api.post("/inventory/adjust", {
         productId: selectedItem.product._id,
         adjustmentQty: qty,
@@ -217,14 +249,15 @@ export default function Inventory() {
       });
       
       showNotification("Stock adjusted successfully", "success");
-      setIsAdjustModalOpen(false);
-      // Optimistic update
-      // Real-time socket will ensure consistency, but we can do optimistic too
     } catch (err) {
       console.error("Adjustment failed:", err);
+      // Rollback
+      setInventory(backup);
       showNotification(err.response?.data?.message || "Failed to adjust stock", "error");
     }
   };
+
+  if (loading) return <InventorySkeleton />;
 
   return (
     <div className="p-2 space-y-6 animate-fade-in">
@@ -356,7 +389,7 @@ export default function Inventory() {
                 <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-widest text-right">Cost / Price</th>
                 <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-widest text-center">Stock Level</th>
                 <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-widest text-center">Last Restock</th>
+                <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-widest text-center">Reserved</th>
                 <th className="px-6 py-4 text-xs font-black text-gray-500 uppercase tracking-widest text-center">Actions</th>
               </tr>
             </thead>
@@ -369,8 +402,9 @@ export default function Inventory() {
                 </tr>
               ) : paginatedInventory.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500 font-medium">
-                    No inventory items found.
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                    <p className="mb-2 text-lg font-medium text-gray-400">No raw materials found.</p>
+                    <p className="text-sm">Add ingredients using the "Add Ingredient" button to start tracking.</p>
                   </td>
                 </tr>
               ) : (
@@ -416,8 +450,10 @@ export default function Inventory() {
                           {item.stockOnHand > 0 ? "In Stock" : "Out of Stock"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center text-xs text-gray-400 font-medium">
-                        {item.lastRestockedAt ? new Date(item.lastRestockedAt).toLocaleDateString() : "N/A"}
+                      <td className="px-6 py-4 text-center">
+                        <span className={`text-sm font-bold ${item.reservedStock > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
+                          {item.reservedStock || 0}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">

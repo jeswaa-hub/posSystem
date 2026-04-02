@@ -1,0 +1,74 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - button [ref=e9]:
+      - img [ref=e10]
+    - generic [ref=e12]:
+      - generic [ref=e13] [cursor=pointer]:
+        - generic [ref=e17]: S
+        - generic:
+          - generic: POS System
+          - generic: Admin Dashboard
+      - navigation [ref=e19]:
+        - link [ref=e21] [cursor=pointer]:
+          - /url: /
+          - img [ref=e23]
+        - link [ref=e26] [cursor=pointer]:
+          - /url: /pos
+          - img [ref=e28]
+        - link [ref=e31] [cursor=pointer]:
+          - /url: /transactions
+          - img [ref=e33]
+        - button [ref=e37]:
+          - img [ref=e39]
+        - link [ref=e42] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e44]
+        - button [ref=e47]:
+          - img [ref=e49]
+        - link [ref=e52] [cursor=pointer]:
+          - /url: /users
+          - img [ref=e55]
+        - link [ref=e59] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e61]
+      - button [ref=e65]:
+        - img [ref=e66]
+  - main [ref=e68]:
+    - generic [ref=e69]:
+      - generic [ref=e70]:
+        - heading "Users" [level=1] [ref=e71]
+        - paragraph [ref=e72]: Sun Mar 08 2026
+      - generic [ref=e74]:
+        - textbox "Search..." [ref=e75]
+        - img [ref=e76]
+      - generic [ref=e78]:
+        - generic [ref=e79]:
+          - paragraph [ref=e80]: Test Admin
+          - paragraph [ref=e81]: admin
+        - generic [ref=e83]: T
+        - button [ref=e85]:
+          - img [ref=e86]
+    - generic [ref=e89]:
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - heading "User Management" [level=2] [ref=e92]
+          - paragraph [ref=e93]: Manage employee accounts and their access permissions
+        - button "Add New Employee" [ref=e94]:
+          - img [ref=e95]
+          - generic [ref=e97]: Add New Employee
+      - generic [ref=e99]:
+        - img [ref=e100]
+        - textbox "Search employees by name or email..." [ref=e102]
+      - table [ref=e105]:
+        - rowgroup [ref=e106]:
+          - row "Employee Role Permissions Status Actions" [ref=e107]:
+            - columnheader "Employee" [ref=e108]
+            - columnheader "Role" [ref=e109]
+            - columnheader "Permissions" [ref=e110]
+            - columnheader "Status" [ref=e111]
+            - columnheader "Actions" [ref=e112]
+        - rowgroup
+```

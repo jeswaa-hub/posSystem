@@ -2,9 +2,10 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const { Inventory, InventoryLog, Product } = require("../models");
+const { verifyToken, verifyTokenAndAdmin } = require("../middleware/authMiddleware");
 
 // Get all inventory records with product details
-router.get("/", async (_req, res) => {
+router.get("/", verifyToken, async (_req, res) => {
   try {
     // Also fetch product details like price/cost for valuation
     const inventories = await Inventory.find().populate("product", "name sku price cost category type unit");
@@ -15,7 +16,7 @@ router.get("/", async (_req, res) => {
 });
 
 // Get inventory logs
-router.get("/logs", async (req, res) => {
+router.get("/logs", verifyToken, async (req, res) => {
   try {
     const logs = await InventoryLog.find()
       .populate("product", "name sku")
@@ -28,7 +29,7 @@ router.get("/logs", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, async (req, res) => {
   try {
     const inventory = await Inventory.findById(req.params.id).populate("product", "name sku price cost category type unit");
     if (!inventory) return res.status(404).json({ message: "Inventory record not found" });
@@ -39,41 +40,53 @@ router.get("/:id", async (req, res) => {
 });
 
 // Initialize inventory for a product
-router.post("/", async (req, res) => {
+router.post("/", verifyToken, async (req, res) => {
+  // Allow Admin and Manager
+  if (req.user.role !== "admin" && req.user.role !== "manager") {
+    return res.status(403).json({ message: "You are not allowed to initialize inventory!" });
+  }
+
   try {
     const { product, stockOnHand, reorderPoint, maxStock, notes } = req.body;
     
-    // Check if inventory exists, but populate product to return full data if it does
-    let inventory = await Inventory.findOne({ product }).populate("product", "name sku price cost category type unit");
-    
-    if (inventory) {
-      // If it exists, we can just return it (idempotent) or update it.
-      // Update fields if provided
-      if (stockOnHand !== undefined) inventory.stockOnHand = stockOnHand;
-      if (reorderPoint !== undefined) inventory.reorderPoint = reorderPoint;
-      if (maxStock !== undefined) inventory.maxStock = maxStock;
-      if (notes !== undefined) inventory.notes = notes;
-      
-      await inventory.save();
-      
-      // Sync Product model's simple stock field if needed
-      if (stockOnHand !== undefined) {
-         await Product.findByIdAndUpdate(product, { stock: stockOnHand });
-      }
+    // Check if product exists
+    const productExists = await Product.findById(product);
+    if (!productExists) return res.status(404).json({ message: "Product not found" });
 
-      return res.status(200).json(inventory);
+    // Check if inventory record already exists
+    const existing = await Inventory.findOne({ product });
+    if (existing) {
+      // If it exists, update it? Or return existing?
+      // Let's update stock if provided, or just return existing
+      return res.status(200).json(existing);
     }
-    
-    // Create inventory record
-    inventory = await Inventory.create({ product, stockOnHand, reorderPoint, maxStock, notes });
-    
-    // Sync with Product model's simple stock field if needed
-    await Product.findByIdAndUpdate(product, { stock: stockOnHand });
 
-    // Emit real-time event
+    const inventory = await Inventory.create({
+      product,
+      stockOnHand: stockOnHand || 0,
+      reorderPoint: reorderPoint || 10,
+      maxStock: maxStock || 1000,
+      notes
+    });
+
+    // Create Initial Log
+    await InventoryLog.create({
+      product,
+      user: req.user.id, // Use ID from token
+      type: 'initial',
+      reason: 'Initial Stock',
+      oldQuantity: 0,
+      newQuantity: stockOnHand || 0,
+      quantityChanged: stockOnHand || 0,
+      notes: "Initialized"
+    });
+
+    // Sync Product model stock
+    await Product.findByIdAndUpdate(product, { stock: stockOnHand || 0 });
+
     const io = req.app.get("io");
     if (io) {
-      const populatedInventory = await Inventory.findById(inventory._id).populate("product", "name sku price cost category type unit");
+      const populatedInventory = await Inventory.findById(inventory._id).populate("product", "name sku price cost category");
       io.emit("inventory_created", populatedInventory);
     }
 
@@ -87,9 +100,15 @@ router.post("/", async (req, res) => {
 });
 
 // Adjust stock (Admin/Manager only) - Removed Transaction for Standalone Support
-router.post("/adjust", async (req, res) => {
+router.post("/adjust", verifyToken, async (req, res) => {
+  // Allow Admin and Manager
+  if (req.user.role !== "admin" && req.user.role !== "manager") {
+    return res.status(403).json({ message: "You are not allowed to adjust stock!" });
+  }
+
   try {
-    const { productId, adjustmentQty, type, reason, userId, notes } = req.body;
+    const { productId, adjustmentQty, type, reason, notes } = req.body;
+    // Note: userId is taken from req.user now for security
     
     // Find inventory
     let inventory = await Inventory.findOne({ product: productId });
@@ -128,7 +147,7 @@ router.post("/adjust", async (req, res) => {
     // Create Log
     await InventoryLog.create({
       product: productId,
-      user: userId, // In real app, get from req.user._id
+      user: req.user.id, // Use secure user ID from token
       type: type === 'set' ? 'manual_set' : (qtyChanged > 0 ? 'restock' : 'adjustment'), 
       // Mapping 'adjustment' generically, but could be specific like 'spoilage' if provided in body
       reason: reason || "Manual Adjustment",
@@ -141,8 +160,13 @@ router.post("/adjust", async (req, res) => {
     // Emit real-time event
     const io = req.app.get("io");
     if (io) {
-      io.emit("inventory_updated", { productId, newStock: newQty });
-      io.emit("product_updated", { _id: productId, stock: newQty }); // Keep POS in sync
+      const populatedInventory = await Inventory.findOne({ product: productId }).populate("product", "name sku price cost category type unit");
+      io.emit("inventory_updated", populatedInventory);
+      
+      const fullProduct = await Product.findById(productId);
+      if (fullProduct) {
+        io.emit("product_updated", fullProduct);
+      }
     }
 
     res.json({ message: "Stock adjusted successfully", newStock: newQty });
@@ -152,17 +176,28 @@ router.post("/adjust", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", verifyToken, async (req, res) => {
+  // Allow Admin and Manager
+  if (req.user.role !== "admin" && req.user.role !== "manager") {
+    return res.status(403).json({ message: "You are not allowed to update inventory!" });
+  }
+
   try {
-    const inventory = await Inventory.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
+    const inventory = await Inventory.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true })
+      .populate("product", "name sku price cost category type unit");
     if (!inventory) return res.status(404).json({ message: "Inventory record not found" });
+    
+    // Emit real-time event
+    const io = req.app.get("io");
+    if (io) io.emit("inventory_updated", inventory);
+
     res.json(inventory);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyTokenAndAdmin, async (req, res) => {
   try {
     const inventory = await Inventory.findByIdAndDelete(req.params.id);
     if (!inventory) return res.status(404).json({ message: "Inventory record not found" });

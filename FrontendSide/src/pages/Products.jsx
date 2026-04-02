@@ -28,6 +28,8 @@ import { useNavigate } from "react-router-dom";
 import { useNotification } from "../contexts/NotificationContext";
 import { useSettings } from "../contexts/SettingsContext";
 import api from "../services/api";
+import TableSkeleton from "../components/skeletons/TableSkeleton";
+import EditProductModal from "../components/modals/EditProductModal";
 
 export default function Products() {
   const navigate = useNavigate();
@@ -37,15 +39,19 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch products from API
   const fetchProducts = async () => {
+    setLoading(true);
     try {
       const res = await api.get("/products");
       setProducts(res.data);
     } catch (err) {
       console.error("Failed to fetch products:", err);
       showNotification("Failed to load products", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,6 +72,12 @@ export default function Products() {
 
     socket.on("product_updated", (updatedProduct) => {
       setProducts(prev => prev.map(p => p._id === updatedProduct._id ? updatedProduct : p));
+      
+      // Conflict detection: If this product is currently being edited
+      if (isEditModalOpen && selectedProduct?._id === updatedProduct._id) {
+        showNotification("This product was updated by another user.", "warning");
+        // Optionally update the selected product or just let the user know
+      }
     });
 
     socket.on("product_deleted", (deletedId) => {
@@ -105,15 +117,6 @@ export default function Products() {
   // Handle Edit Click
   const handleEditClick = (product) => {
     setSelectedProduct(product);
-    setEditFormData({
-      name: product.name,
-      price: product.price,
-      cost: product.cost || 0,
-      stock: product.stock,
-      category: product.category,
-      status: product.status,
-      sku: product.sku || ""
-    });
     setIsEditModalOpen(true);
   };
 
@@ -124,38 +127,42 @@ export default function Products() {
   };
 
   // Save Edit
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
-    
-    // Price Validation
-    if (Number(editFormData.price) <= Number(editFormData.cost)) {
-      showNotification("Selling price must be higher than the cost price", "warning");
-      return;
-    }
-
+  const handleSaveEdit = async (updatedProduct) => {
+    const backup = [...products];
     try {
-      await api.patch(`/products/${selectedProduct._id}`, editFormData);
-      // Removed manual update, socket will handle it
+      // Optimistic update
+      setProducts(prev => prev.map(p => p._id === updatedProduct._id ? updatedProduct : p));
       setIsEditModalOpen(false);
+      
+      await api.patch(`/products/${updatedProduct._id}`, updatedProduct);
       showNotification("Product updated successfully", "success");
     } catch (err) {
       console.error("Failed to update product:", err);
+      // Rollback
+      setProducts(backup);
       showNotification("Failed to update product", "error");
     }
   };
 
   // Confirm Delete
   const handleConfirmDelete = async () => {
+    const backup = [...products];
     try {
-      await api.delete(`/products/${selectedProduct._id}`);
-      // Removed manual update, socket will handle it
+      // Optimistic update
+      setProducts(prev => prev.filter(p => p._id !== selectedProduct._id));
       setIsDeleteModalOpen(false);
+      
+      await api.delete(`/products/${selectedProduct._id}`);
       showNotification("Product deleted successfully", "success");
     } catch (err) {
       console.error("Failed to delete product:", err);
+      // Rollback
+      setProducts(backup);
       showNotification("Failed to delete product", "error");
     }
   };
+
+  if (loading) return <TableSkeleton headers={7} rows={8} />;
 
   return (
     <div className="p-2 space-y-8 animate-fade-in">
@@ -282,16 +289,21 @@ export default function Products() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 text-xs font-black uppercase tracking-wider">
                     {product.status === 'active' ? (
-                      <span className="flex items-center gap-1.5 text-green-500 text-xs font-black uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5 text-green-500">
                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                         Active
                       </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 text-red-500 text-xs font-black uppercase tracking-wider">
+                    ) : product.status === 'out_of_stock' ? (
+                      <span className="flex items-center gap-1.5 text-red-500">
                         <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
                         Out of Stock
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-amber-500">
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                        Draft
                       </span>
                     )}
                   </td>
@@ -330,187 +342,13 @@ export default function Products() {
       </div>
 
       {/* Edit Modal (Redesigned) */}
-      {isEditModalOpen && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-hidden">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-2xl" onClick={() => setIsEditModalOpen(false)} />
-          <div className="relative w-full max-w-4xl bg-dark-800 rounded-[2.5rem] border border-dark-700 shadow-2xl overflow-hidden animate-modal-in flex flex-col max-h-[90vh]">
-            
-            {/* Header with Breadcrumbs */}
-            <div className="p-8 border-b border-dark-700 bg-dark-800/50 backdrop-blur-md sticky top-0 z-10">
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
-                <button 
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="hover:text-accent transition-colors flex items-center gap-1"
-                >
-                  <ArrowLeftIcon className="w-3 h-3" />
-                  Product List
-                </button>
-                <ChevronRightIcon className="w-3 h-3" />
-                <span className="text-white">Edit Product: {selectedProduct?.name}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-3xl font-black text-white tracking-tight">Edit Product Details</h3>
-                  <p className="text-gray-400 text-sm mt-1">Update pricing, inventory, and product info</p>
-                </div>
-                <button onClick={() => setIsEditModalOpen(false)} className="p-3 bg-dark-900 rounded-2xl text-gray-500 hover:text-white transition-all border border-dark-700">
-                  <XMarkIcon className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
-              <form onSubmit={handleSaveEdit} className="space-y-10">
-                
-                {/* Basic Information */}
-                <section className="space-y-6">
-                  <div className="flex items-center gap-3 text-accent mb-2">
-                    <TagIcon className="w-6 h-6" />
-                    <h4 className="text-lg font-bold text-white uppercase tracking-wider text-sm">Product Information</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-dark-900/50 p-8 rounded-3xl border border-dark-700/50">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Product Name</label>
-                      <input
-                        required
-                        autoFocus
-                        type="text"
-                        value={editFormData.name}
-                        onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                        className="w-full bg-dark-800/50 text-white font-bold px-5 py-3 rounded-2xl border border-dark-700/30 focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all"
-                        placeholder="e.g. Espresso"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Category</label>
-                      <select
-                        value={editFormData.category}
-                        onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
-                        className="w-full bg-dark-800/50 text-white font-medium px-5 py-3 rounded-2xl border border-dark-700/30 focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all appearance-none cursor-pointer"
-                      >
-                        {categories.filter(c => c !== "All").map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest">SKU (Stock Keeping Unit)</label>
-                      <input
-                        type="text"
-                        value={editFormData.sku}
-                        onChange={(e) => setEditFormData({ ...editFormData, sku: e.target.value })}
-                        className="w-full bg-dark-800/50 text-white font-mono px-5 py-3 rounded-2xl border border-dark-700/30 focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all"
-                        placeholder="e.g. HOT-001"
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                {/* Pricing & Stock */}
-                <section className="space-y-6">
-                  <div className="flex items-center gap-3 text-accent mb-2">
-                    <BanknotesIcon className="w-6 h-6" />
-                    <h4 className="text-lg font-bold text-white uppercase tracking-wider text-sm">Pricing & Inventory</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-dark-900/50 p-8 rounded-3xl border border-dark-700/50">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Cost (₱)</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₱</span>
-                        <input
-                          required
-                          type="number"
-                          value={editFormData.cost}
-                          onChange={(e) => setEditFormData({ ...editFormData, cost: Number(e.target.value) })}
-                          className="w-full bg-dark-800/50 text-white font-bold pl-10 pr-5 py-3 rounded-2xl border border-dark-700/30 focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Selling (₱)</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₱</span>
-                        <input
-                          required
-                          type="number"
-                          value={editFormData.price}
-                          onChange={(e) => setEditFormData({ ...editFormData, price: Number(e.target.value) })}
-                          className={`w-full bg-dark-800/50 text-white font-bold pl-10 pr-5 py-3 rounded-2xl border ${Number(editFormData.price) <= Number(editFormData.cost) ? 'border-red-500/50 focus:ring-red-500' : 'border-dark-700/30 focus:border-accent focus:ring-accent'} outline-none transition-all`}
-                        />
-                      </div>
-                      {Number(editFormData.price) <= Number(editFormData.cost) && (
-                        <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider animate-pulse">Price must be {">"} cost</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Stock Level</label>
-                      <div className="relative">
-                        <CubeIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                        <input
-                          required
-                          type="number"
-                          value={editFormData.stock}
-                          onChange={(e) => setEditFormData({ ...editFormData, stock: Number(e.target.value) })}
-                          className="w-full bg-dark-800/50 text-white font-bold pl-10 pr-5 py-3 rounded-2xl border border-dark-700/30 focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Status Selection */}
-                <section className="space-y-6">
-                  <div className="flex items-center gap-3 text-accent mb-2">
-                    <InformationCircleIcon className="w-6 h-6" />
-                    <h4 className="text-lg font-bold text-white uppercase tracking-wider text-sm">Product Status</h4>
-                  </div>
-                  <div className="flex p-2 bg-dark-900/50 rounded-3xl border border-dark-700/50">
-                    {[
-                      { id: 'active', label: 'Active', icon: CheckCircleIcon, color: 'bg-green-500' },
-                      { id: 'out_of_stock', label: 'Out of Stock', icon: ExclamationCircleIcon, color: 'bg-red-500' }
-                    ].map(status => (
-                      <button
-                        key={status.id}
-                        type="button"
-                        onClick={() => setEditFormData({ ...editFormData, status: status.id })}
-                        className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all duration-300 ${
-                          editFormData.status === status.id 
-                          ? `${status.color} text-white shadow-2xl scale-[1.02]` 
-                          : "text-gray-500 hover:text-white hover:bg-dark-800"
-                        }`}
-                      >
-                        <status.icon className="w-5 h-5" />
-                        {status.label}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              </form>
-            </div>
-
-            {/* Sticky Footer Buttons */}
-            <div className="p-8 border-t border-dark-700 bg-dark-800/80 backdrop-blur-md flex gap-4">
-              <button
-                type="button"
-                onClick={() => setIsEditModalOpen(false)}
-                className="flex-1 py-4 rounded-2xl font-bold text-gray-400 bg-dark-900 border border-dark-700 hover:bg-dark-700 hover:text-white transition-all flex items-center justify-center gap-2"
-              >
-                <XMarkIcon className="w-5 h-5" />
-                Discard
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                type="submit"
-                className="flex-[2] py-4 rounded-2xl font-black text-white bg-gradient-to-br from-accent via-orange-500 to-red-600 shadow-2xl shadow-accent/20 transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2"
-              >
-                <ShieldCheckIcon className="w-6 h-6" />
-                Save Product Changes
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <EditProductModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        product={selectedProduct}
+        onSave={handleSaveEdit}
+        categories={dbCategories.map(c => c.name)}
+      />
 
       {/* Delete Modal */}
       {isDeleteModalOpen && createPortal(

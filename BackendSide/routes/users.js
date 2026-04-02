@@ -2,10 +2,12 @@ const express = require("express");
 const router = express.Router();
 const { User } = require("../models");
 const jwt = require("jsonwebtoken");
+const { verifyTokenAndAdmin, verifyTokenAndAuthorization } = require("../middleware/authMiddleware");
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
+// Removed hardcoded fallback. server.js checks for env var now.
+const JWT_SECRET = process.env.JWT_SECRET;
 
-router.post("/register", async (req, res) => {
+router.post("/register", verifyTokenAndAdmin, async (req, res) => {
   try {
     const { fullName, email, password, role, permissions } = req.body;
     const exists = await User.findOne({ email });
@@ -34,7 +36,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/", async (_req, res) => {
+router.get("/", verifyTokenAndAdmin, async (_req, res) => {
   try {
     const users = await User.find().select("-password");
     res.json(users);
@@ -43,7 +45,7 @@ router.get("/", async (_req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyTokenAndAuthorization, async (req, res) => {
   try {
     const user = await User.findOne({ _id: req.params.id, isActive: true }).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -53,7 +55,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", verifyTokenAndAdmin, async (req, res) => {
   try {
     const { fullName, email, role, isActive, password, permissions } = req.body;
     
@@ -65,6 +67,11 @@ router.patch("/:id", async (req, res) => {
     // Find user first to trigger pre-save hooks if password is changed
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Validate email format if updated
+    if (email && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
 
     if (fullName) user.fullName = fullName;
     if (email) user.email = email;
@@ -90,7 +97,7 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyTokenAndAdmin, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, { isActive: false }, { returnDocument: 'after' });
     if (!user) return res.status(404).json({ message: "User not found" });

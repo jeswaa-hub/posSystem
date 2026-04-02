@@ -1,0 +1,92 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - button [ref=e9]:
+      - img [ref=e10]
+    - generic [ref=e12]:
+      - generic [ref=e13] [cursor=pointer]:
+        - generic [ref=e17]: S
+        - generic:
+          - generic: POS System
+          - generic: Admin Dashboard
+      - navigation [ref=e19]:
+        - link [ref=e21] [cursor=pointer]:
+          - /url: /
+          - img [ref=e23]
+        - link [ref=e26] [cursor=pointer]:
+          - /url: /pos
+          - img [ref=e29]
+        - link [ref=e32] [cursor=pointer]:
+          - /url: /transactions
+          - img [ref=e34]
+        - button [ref=e38]:
+          - img [ref=e40]
+        - link [ref=e43] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e45]
+        - button [ref=e48]:
+          - img [ref=e50]
+        - link [ref=e53] [cursor=pointer]:
+          - /url: /users
+          - img [ref=e55]
+        - link [ref=e59] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e61]
+      - button [ref=e65]:
+        - img [ref=e66]
+  - main [ref=e68]:
+    - generic [ref=e69]:
+      - generic [ref=e70]:
+        - heading "POS" [level=1] [ref=e71]
+        - paragraph [ref=e72]: Sun Mar 08 2026
+      - generic [ref=e74]:
+        - textbox "Search..." [ref=e75]
+        - img [ref=e76]
+      - generic [ref=e78]:
+        - generic [ref=e79]:
+          - paragraph [ref=e80]: Test Admin
+          - paragraph [ref=e81]: admin
+        - generic [ref=e83]: T
+        - button [ref=e85]:
+          - img [ref=e86]
+    - generic [ref=e89]:
+      - generic [ref=e91]:
+        - generic [ref=e92]:
+          - img [ref=e93]
+          - textbox "Search products..." [ref=e95]
+        - button [ref=e97] [cursor=pointer]:
+          - img [ref=e98]
+      - generic [ref=e101]:
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - img [ref=e105]
+            - heading "Current Order" [level=2] [ref=e107]
+          - generic [ref=e108]: "#8455"
+        - generic [ref=e110]:
+          - img [ref=e112]
+          - paragraph [ref=e114]: Your cart is empty
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - generic [ref=e118]: Subtotal
+              - generic [ref=e119]: ₱0
+            - generic [ref=e120]:
+              - generic [ref=e121]: Tax (12%)
+              - generic [ref=e122]: ₱0
+            - generic [ref=e123]:
+              - generic [ref=e124]: Total
+              - generic [ref=e125]: ₱0
+          - generic [ref=e126]:
+            - button "Cash" [ref=e127]:
+              - img [ref=e128]
+              - generic [ref=e130]: Cash
+            - button "Card" [ref=e131]:
+              - img [ref=e132]
+              - generic [ref=e134]: Card
+            - button "E-Wallet" [ref=e135]:
+              - img [ref=e136]
+              - generic [ref=e139]: E-Wallet
+          - button "Place Order" [ref=e140]
+```

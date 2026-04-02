@@ -1,0 +1,79 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - button [ref=e9]:
+      - img [ref=e10]
+    - generic [ref=e12]:
+      - generic [ref=e13] [cursor=pointer]:
+        - generic [ref=e17]: S
+        - generic:
+          - generic: POS System
+          - generic: Admin Dashboard
+      - navigation [ref=e19]:
+        - link [ref=e21] [cursor=pointer]:
+          - /url: /
+          - img [ref=e23]
+        - link [ref=e26] [cursor=pointer]:
+          - /url: /pos
+          - img [ref=e28]
+        - link [ref=e31] [cursor=pointer]:
+          - /url: /transactions
+          - img [ref=e34]
+        - button [ref=e38]:
+          - img [ref=e40]
+        - link [ref=e43] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e45]
+        - button [ref=e48]:
+          - img [ref=e50]
+        - link [ref=e53] [cursor=pointer]:
+          - /url: /users
+          - img [ref=e55]
+        - link [ref=e59] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e61]
+      - button [ref=e65]:
+        - img [ref=e66]
+  - main [ref=e68]:
+    - generic [ref=e69]:
+      - generic [ref=e70]:
+        - heading "Transactions" [level=1] [ref=e71]
+        - paragraph [ref=e72]: Sun Mar 08 2026
+      - generic [ref=e74]:
+        - textbox "Search..." [ref=e75]
+        - img [ref=e76]
+      - generic [ref=e78]:
+        - generic [ref=e79]:
+          - paragraph [ref=e80]: Test Admin
+          - paragraph [ref=e81]: admin
+        - generic [ref=e83]: T
+        - button [ref=e85]:
+          - img [ref=e86]
+    - generic [ref=e89]:
+      - generic [ref=e91]:
+        - heading "Transactions" [level=2] [ref=e92]
+        - paragraph [ref=e93]: Monitor sales and order history
+      - generic [ref=e94]:
+        - generic [ref=e95]:
+          - img [ref=e96]
+          - textbox "Search transactions..." [ref=e98]
+        - button [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+      - table [ref=e105]:
+        - rowgroup [ref=e106]:
+          - row "Transaction ID Date & Time Customer Items Total Payment Status Actions" [ref=e107]:
+            - columnheader "Transaction ID" [ref=e108]
+            - columnheader "Date & Time" [ref=e109]
+            - columnheader "Customer" [ref=e110]
+            - columnheader "Items" [ref=e111]
+            - columnheader "Total" [ref=e112]
+            - columnheader "Payment" [ref=e113]
+            - columnheader "Status" [ref=e114]
+            - columnheader "Actions" [ref=e115]
+        - rowgroup [ref=e116]:
+          - row "No transactions found" [ref=e117]:
+            - cell "No transactions found" [ref=e118]:
+              - paragraph [ref=e119]: No transactions found
+```

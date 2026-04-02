@@ -20,6 +20,7 @@ export function SettingsProvider({ children }) {
     logoChar: "S",
     logoColorStart: "#f59e0b",
     logoColorEnd: "#dc2626",
+    taxRate: 12,
   });
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +84,8 @@ export function SettingsProvider({ children }) {
   const updateBranding = async (newBranding) => {
     try {
       const res = await api.patch("/settings", newBranding);
-      // Removed manual state update: socket handles it
+      // Immediate update for better UX
+      setSettings(res.data);
       return res.data;
     } catch (err) {
       console.error("Failed to save branding:", err);
@@ -94,7 +96,11 @@ export function SettingsProvider({ children }) {
   const addCategory = async (name) => {
     try {
       const res = await api.post("/categories", { name });
-      // Removed manual state update: socket handles it
+      // Immediate update for better UX
+      setCategories(prev => {
+        if (prev.find(c => c._id === res.data._id)) return prev;
+        return [...prev, res.data];
+      });
       return res.data;
     } catch (err) {
       console.error("Failed to add category:", err);
@@ -105,7 +111,8 @@ export function SettingsProvider({ children }) {
   const removeCategory = async (id) => {
     try {
       await api.delete(`/categories/${id}`);
-      // Removed manual state update: socket handles it
+      // Immediate update for better UX
+      setCategories(prev => prev.filter(c => c._id !== id));
     } catch (err) {
       console.error("Failed to remove category:", err);
       throw err;

@@ -2,13 +2,12 @@ import { Link, useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../contexts/NotificationContext";
 import { useSettings } from "../contexts/SettingsContext";
+import { useSocketState } from "../contexts/SocketContext";
 import { useState, Fragment, useEffect } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { 
   Squares2X2Icon,
   ClipboardDocumentListIcon,
-  MapPinIcon,
-  CreditCardIcon,
   ArrowRightOnRectangleIcon,
   Cog6ToothIcon,
   BellIcon,
@@ -23,7 +22,6 @@ import {
   ChevronUpIcon,
   ListBulletIcon,
   PlusIcon,
-  MagnifyingGlassIcon,
   DocumentChartBarIcon,
   PresentationChartLineIcon,
   UserGroupIcon,
@@ -33,12 +31,13 @@ import {
   CheckIcon,
   Bars3Icon,
   XMarkIcon
-} from "@heroicons/react/24/solid";
+} from "@heroicons/react/24/outline";
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const { showNotification, history, unreadCount, markAllAsRead, clearHistory } = useNotification();
   const { settings } = useSettings();
+  const { isConnected, lastError } = useSocketState();
   const nav = useNavigate();
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -125,72 +124,60 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside 
-        className={`fixed lg:relative z-[70] flex flex-col h-full transition-all duration-300 ease-in-out 
-          ${isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'} 
-          ${isExpanded ? 'lg:w-64' : 'lg:w-24'}
+        className={`fixed lg:relative z-[100] flex flex-col h-full transition-all duration-500 ease-in-out 
+          ${isMobileMenuOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'} 
+          ${isExpanded ? 'lg:w-72' : 'lg:w-24'}
+          bg-dark-900 border-r border-dark-700/50
         `}
       >
         {/* Close Button for Mobile */}
         <button 
-          className="lg:hidden absolute top-4 right-4 text-gray-400 hover:text-white"
+          className="lg:hidden absolute top-6 right-6 text-gray-500 hover:text-red-400 z-[80] transition-all duration-500 p-2 rounded-lg hover:bg-white/[0.02]"
           onClick={() => setIsMobileMenuOpen(false)}
         >
           <XMarkIcon className="w-6 h-6" />
         </button>
 
-        {/* Organic Curved Background Strip */}
-        <div className={`absolute top-0 left-0 bottom-0 transition-all duration-300 ease-in-out z-0 w-full`}>
-          <div className="w-full h-full bg-dark-800 rounded-r-3xl shadow-2xl shadow-black/50 overflow-hidden relative">
-            {/* Wavy/Organic Overlay Effect */}
-            <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-white/5 to-transparent skew-x-3 blur-xl opacity-30" />
-            <div className="absolute bottom-20 -right-4 w-16 h-32 bg-accent/10 rounded-full blur-2xl" />
-          </div>
-        </div>
-        
-        {/* Toggle Button (Desktop Only) */}
+        {/* Toggle Button (Desktop Only) - Seamlessly Integrated */}
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
-          className="hidden lg:block absolute right-0 top-12 translate-x-1/2 z-50 bg-accent text-white p-2.5 rounded-full shadow-2xl border-2 border-dark-900 hover:scale-110 transition-all duration-300 group ring-4 ring-dark-900/50"
+          className="hidden lg:flex absolute -right-[13px] top-12 z-50 bg-dark-900 text-gray-500 hover:text-accent w-6 h-10 items-center justify-center rounded-md border border-white/[0.05] shadow-xl transition-all duration-500 hover:bg-dark-800 group"
         >
           {isExpanded ? (
-            <ChevronLeftIcon className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform stroke-[3]" />
+            <ChevronLeftIcon className="w-3 h-3 transition-transform duration-500 group-hover:-translate-x-0.5" />
           ) : (
-            <ChevronRightIcon className="w-4 h-4 group-hover:translate-x-0.5 transition-transform stroke-[3]" />
+            <ChevronRightIcon className="w-3 h-3 transition-transform duration-500 group-hover:translate-x-0.5" />
           )}
         </button>
         
         {/* Content Wrapper */}
-        <div className="relative z-10 flex flex-col h-full w-full py-6">
+        <div className="relative z-10 flex flex-col h-full w-full py-10">
             
-            {/* Fiery Logo */}
-            <div className={`mb-10 flex items-center group cursor-pointer ${isExpanded || isMobileMenuOpen ? 'px-6 gap-4' : 'flex-col justify-center'}`}>
-                <div className="w-14 h-14 relative flex-shrink-0 flex items-center justify-center">
-                    {/* Flame Effect Background */}
+            {/* Premium Logo Section */}
+            <div className={`mb-14 flex items-center transition-all duration-500 ${isExpanded || isMobileMenuOpen ? 'px-10 gap-5' : 'flex-col justify-center'}`}>
+                <div className="w-12 h-12 relative flex-shrink-0 group cursor-pointer">
                     <div 
-                      className="absolute inset-0 rounded-2xl blur-md opacity-75 group-hover:opacity-100 transition-opacity duration-300 animate-pulse" 
-                      style={{ background: `linear-gradient(to top right, ${settings?.logoColorStart || '#ea580c'}, ${settings?.logoColorEnd || '#dc2626'}, #facc15)` }}
+                      className="absolute inset-0 rounded-xl blur-lg opacity-20 group-hover:opacity-60 transition-opacity duration-700" 
+                      style={{ background: `linear-gradient(to top right, ${settings?.logoColorStart || '#ea580c'}, ${settings?.logoColorEnd || '#dc2626'})` }}
                     />
-                    <div className="relative w-full h-full bg-dark-900 rounded-xl flex items-center justify-center border border-white/10 z-10 overflow-hidden">
+                    <div className="relative w-full h-full bg-dark-800 rounded-xl flex items-center justify-center border border-white/10 z-10 overflow-hidden shadow-2xl">
                         <span 
-                          className="text-3xl font-black bg-clip-text text-transparent transform -skew-x-6"
-                          style={{ backgroundImage: `linear-gradient(to bottom right, #fcd34d, ${settings?.logoColorStart || '#f97316'}, ${settings?.logoColorEnd || '#dc2626'})` }}
+                          className="text-2xl font-black bg-clip-text text-transparent"
+                          style={{ backgroundImage: `linear-gradient(to bottom right, #ffffff, ${settings?.logoColorStart || '#f97316'})` }}
                         >
                           {settings?.logoChar || 'S'}
                         </span>
-                        {/* Shine effect */}
-                        <div className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 group-hover:animate-shimmer" />
                     </div>
                 </div>
                 
-                {/* Logo Text (Visible when expanded or mobile) */}
-                <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isExpanded || isMobileMenuOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden lg:flex'}`}>
-                  <span className="text-xl font-bold text-white tracking-tight whitespace-nowrap">{settings?.appName || "POS System"}</span>
-                  <span className="text-xs text-text-secondary whitespace-nowrap">{settings?.appSubtitle || "Admin Dashboard"}</span>
+                <div className={`flex flex-col transition-all duration-500 ${isExpanded || isMobileMenuOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 pointer-events-none absolute'}`}>
+                  <span className="text-xl font-extrabold text-white tracking-tight uppercase leading-none">{settings?.appName || "Samoke Valley"}</span>
+                  <span className="text-[9px] font-bold text-gray-400/60 uppercase tracking-[0.3em] mt-1">{settings?.appSubtitle || "Admin Dashboard"}</span>
                 </div>
             </div>
 
-            {/* Navigation Icons */}
-            <nav className="flex-1 flex flex-col gap-2 w-full px-2 overflow-y-auto custom-scrollbar">
+            {/* Navigation Section */}
+            <nav className="flex-1 flex flex-col gap-2 w-full px-6 overflow-y-auto custom-scrollbar">
                 {filteredMenuItems.map((item) => {
                     const isActive = location.pathname === item.path || (item.children?.some(child => location.pathname === child.path));
                     const isOpen = openDropdowns[item.label];
@@ -201,37 +188,32 @@ export default function Layout() {
                                 <>
                                     <button
                                         onClick={() => toggleDropdown(item.label)}
-                                        className={`group relative flex items-center w-full transition-all duration-300 ${isExpanded || isMobileMenuOpen ? 'px-4 py-3' : 'justify-center py-4'}`}
+                                        className={`group relative flex items-center w-full rounded-xl transition-all duration-500 mb-1 ${isExpanded || isMobileMenuOpen ? 'px-4 py-3.5' : 'justify-center py-3.5'}
+                                          ${isActive ? 'bg-white/[0.03]' : 'hover:bg-white/[0.02]'}
+                                        `}
                                     >
-                                        {isActive && !isExpanded && !isMobileMenuOpen && (
-                                            <div className="absolute left-0 right-0 mx-auto w-12 h-12 bg-accent/20 rounded-xl blur-md scale-110" />
+                                        {/* Active Indicator Bar - More subtle left border */}
+                                        {isActive && (
+                                          <div className="absolute left-0 w-1 h-5 bg-accent rounded-r-full shadow-[0_0_15px_rgba(234,88,12,0.3)]" />
                                         )}
-                                        <div className={`
-                                            relative flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-300 z-10
-                                            ${isActive 
-                                                ? "bg-gradient-to-br from-accent to-red-600 text-white shadow-lg shadow-accent/40" 
-                                                : "text-gray-400 hover:bg-dark-700 hover:text-white"
-                                            }
-                                        `}>
-                                            <item.icon className="w-6 h-6" />
+
+                                        <div className={`relative flex-shrink-0 transition-all duration-500 ${isActive ? 'text-accent' : 'text-gray-500 group-hover:text-gray-300'}`}>
+                                            <item.icon className="w-5 h-5" />
                                         </div>
+
                                         {(isExpanded || isMobileMenuOpen) && (
                                             <>
-                                                <span className={`ml-4 font-medium tracking-wide flex-1 text-left ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+                                                <span className={`ml-4 font-semibold text-[13px] tracking-wide flex-1 text-left transition-colors ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'}`}>
                                                     {item.label}
                                                 </span>
-                                                {isOpen ? (
-                                                    <ChevronUpIcon className="w-4 h-4 text-gray-500" />
-                                                ) : (
-                                                    <ChevronDownIcon className="w-4 h-4 text-gray-500" />
-                                                )}
+                                                <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform duration-500 ${isOpen ? 'rotate-180 text-accent' : 'text-gray-600 group-hover:text-gray-400'}`} />
                                             </>
                                         )}
                                     </button>
                                     
-                                    {/* Dropdown Children */}
+                                    {/* Dropdown Children - Improved Indentation and Guide Line */}
                                     {(isExpanded || isMobileMenuOpen) && isOpen && (
-                                        <div className="mt-1 flex flex-col gap-1 ml-4 border-l-2 border-dark-700">
+                                        <div className="mb-3 ml-[26px] pl-6 border-l border-white/[0.05] flex flex-col gap-1.5 relative">
                                             {item.children.map((child) => {
                                                 const isChildActive = location.pathname === child.path;
                                                 return (
@@ -239,15 +221,18 @@ export default function Layout() {
                                                         key={child.label}
                                                         to={child.path}
                                                         className={`
-                                                            flex items-center px-6 py-2.5 rounded-r-xl transition-all duration-200
+                                                            group flex items-center py-2.5 rounded-lg transition-all duration-500 relative
                                                             ${isChildActive 
-                                                                ? "bg-accent/10 text-accent font-semibold" 
-                                                                : "text-gray-500 hover:bg-dark-700/50 hover:text-gray-300"
+                                                                ? "text-accent" 
+                                                                : "text-gray-500 hover:text-gray-300"
                                                             }
                                                         `}
                                                     >
-                                                        <child.icon className="w-4 h-4 mr-3" />
-                                                        <span className="text-sm">{child.label}</span>
+                                                        {/* Horizontal Guide Line Extension */}
+                                                        <div className={`absolute -left-6 w-4 h-[1px] ${isChildActive ? 'bg-accent/50' : 'bg-white/[0.05]'}`} />
+                                                        
+                                                        <child.icon className={`w-4 h-4 mr-3 transition-all duration-500 ${isChildActive ? 'scale-110 text-accent' : 'group-hover:scale-110 group-hover:text-gray-300'}`} />
+                                                        <span className={`text-[11px] font-bold uppercase tracking-[0.15em] ${isChildActive ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'}`}>{child.label}</span>
                                                     </Link>
                                                 );
                                             })}
@@ -257,22 +242,21 @@ export default function Layout() {
                             ) : (
                                 <Link
                                     to={item.path}
-                                    className={`group relative flex items-center w-full transition-all duration-300 ${isExpanded ? 'px-4 py-3' : 'justify-center py-4'}`}
+                                    className={`group relative flex items-center w-full rounded-xl transition-all duration-500 mb-1 ${isExpanded || isMobileMenuOpen ? 'px-4 py-3.5' : 'justify-center py-3.5'}
+                                      ${isActive ? 'bg-white/[0.03]' : 'hover:bg-white/[0.02]'}
+                                    `}
                                 >
-                                    {isActive && !isExpanded && (
-                                        <div className="absolute left-0 right-0 mx-auto w-12 h-12 bg-accent/20 rounded-xl blur-md scale-110" />
+                                    {/* Active Indicator Bar */}
+                                    {isActive && (
+                                      <div className="absolute left-0 w-1 h-5 bg-accent rounded-r-full shadow-[0_0_15px_rgba(234,88,12,0.3)]" />
                                     )}
-                                    <div className={`
-                                        relative flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-300 z-10
-                                        ${isActive 
-                                            ? "bg-gradient-to-br from-accent to-red-600 text-white shadow-lg shadow-accent/40" 
-                                            : "text-gray-400 hover:bg-dark-700 hover:text-white"
-                                        }
-                                    `}>
-                                        <item.icon className="w-6 h-6" />
+
+                                    <div className={`relative flex-shrink-0 transition-all duration-500 ${isActive ? 'text-accent' : 'text-gray-500 group-hover:text-gray-300'}`}>
+                                        <item.icon className="w-5 h-5" />
                                     </div>
-                                    {isExpanded && (
-                                        <span className={`ml-4 font-medium tracking-wide ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`}>
+
+                                    {(isExpanded || isMobileMenuOpen) && (
+                                        <span className={`ml-4 font-semibold text-[13px] tracking-wide transition-colors ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'}`}>
                                             {item.label}
                                         </span>
                                     )}
@@ -283,17 +267,14 @@ export default function Layout() {
                 })}
             </nav>
 
-            {/* Logout & Notifications */}
-            <div className={`mt-auto flex flex-col gap-2 w-full pb-4 border-t border-dark-700 pt-4 ${isExpanded ? 'px-6' : 'items-center'}`}>
-                 <div className={`bg-dark-700 my-2 ${isExpanded ? 'w-full h-[1px]' : 'w-8 h-[1px]'}`} />
-
-                 {/* Logout */}
+            {/* Logout Footer - Improved Separation */}
+            <div className={`mt-auto pt-8 border-t border-white/[0.05] mx-6 ${isExpanded || isMobileMenuOpen ? 'px-2' : 'flex justify-center'}`}>
                  <button
                     onClick={handleLogout}
-                    className={`group relative flex items-center rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-500 transition-all duration-300 ${isExpanded ? 'w-full px-2 py-2 gap-3' : 'w-10 h-10 justify-center'}`}
+                    className={`group flex items-center rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-400/[0.03] transition-all duration-500 ${isExpanded || isMobileMenuOpen ? 'w-full px-4 py-3.5 gap-4' : 'w-12 h-12 justify-center'}`}
                 >
-                    <ArrowRightOnRectangleIcon className="w-6 h-6 flex-shrink-0 group-hover:scale-110 transition-transform" />
-                    {isExpanded && <span className="font-medium whitespace-nowrap">Logout</span>}
+                    <ArrowRightOnRectangleIcon className="w-5 h-5 flex-shrink-0 group-hover:-translate-x-1 transition-transform duration-500" />
+                    {(isExpanded || isMobileMenuOpen) && <span className="font-bold text-[11px] tracking-[0.2em] uppercase">Sign Out</span>}
                 </button>
             </div>
         </div>
@@ -301,9 +282,9 @@ export default function Layout() {
 
       {/* Main Content */}
       <main className={`flex-1 overflow-auto bg-dark-900 flex flex-col relative transition-all duration-300 w-full`}>
-        <header className="h-20 md:h-24 min-h-[5rem] flex items-center justify-between px-4 md:px-8 py-4 md:py-6 sticky top-0 z-20 bg-dark-900/80 backdrop-blur-md border-b border-dark-700/50">
+        <header className="h-20 md:h-24 min-h-[5rem] flex items-center justify-between px-4 md:px-8 py-4 md:py-6 sticky top-0 z-[90] bg-dark-900/80 backdrop-blur-md border-b border-dark-700/50">
           <div className="ml-12 lg:ml-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+            <h1 className="text-xl md:text-3xl font-bold text-white tracking-tight">
               {(() => {
                 const currentItem = menuItems.find(i => i.path === location.pathname);
                 if (currentItem) return currentItem.label;
@@ -322,24 +303,26 @@ export default function Layout() {
             <p className="text-sm text-text-secondary mt-1">{new Date().toDateString()}</p>
           </div>
           
-          {/* Centered Search Bar */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block w-[600px]">
-            <div className="relative w-full group">
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                className="w-full bg-dark-800 text-white pl-11 pr-4 py-3 rounded-2xl border border-transparent focus:border-accent focus:ring-1 focus:ring-accent placeholder-text-muted transition-all shadow-lg shadow-black/20 group-hover:bg-dark-700"
-              />
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-text-secondary absolute left-4 top-1/2 -translate-y-1/2 group-hover:text-white transition-colors">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-              </svg>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-white">{user?.fullName || "Admin User"}</p>
-                <p className="text-xs text-text-secondary font-medium">{user?.role || "Manager"}</p>
+          <div className="flex items-center gap-2 md:gap-4">
+              {/* Real-time Status */}
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-dark-800 rounded-xl border border-dark-700 shadow-lg">
+                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  {isConnected ? 'Sync Active' : 'Offline'}
+                </span>
+                {lastError && (
+                  <div className="group relative">
+                    <XMarkIcon className="w-3.5 h-3.5 text-red-500 cursor-help" />
+                    <div className="absolute right-0 top-full mt-2 w-48 p-2 bg-red-500 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                      {lastError}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="hidden md:flex flex-col items-end">
+                <p className="text-sm font-black text-white leading-none mb-1">{user?.fullName || "User"}</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{user?.role || "Staff"}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-dark-800 p-1 border-2 border-dark-700 shadow-xl">
                  <div className="w-full h-full rounded-xl bg-gradient-to-tr from-accent to-orange-400 flex items-center justify-center text-white font-bold text-lg">

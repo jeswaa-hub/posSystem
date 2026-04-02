@@ -1,7 +1,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://apisamokivalley.springbullbars.shop/api",
+  // [PRODUCTION_ELEMENT_REMOVED]: Hardcoded production fallback URL moved to ForProduction.md
+  // Timestamp: 2026-03-08 | Reason: Centralizing production URLs in ForProduction.md.
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
   headers: { "Content-Type": "application/json" },
 });
 

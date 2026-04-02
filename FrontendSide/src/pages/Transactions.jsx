@@ -21,6 +21,7 @@ import api from "../services/api";
 import { useSocket } from "../contexts/SocketContext";
 import { useReactToPrint } from "react-to-print";
 import PrintableReceipt from "../components/PrintableReceipt";
+import TableSkeleton from "../components/skeletons/TableSkeleton";
 
 const formatPeso = (amount) => {
   return `₱${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -112,6 +113,7 @@ export default function Transactions() {
     if (!socket) return;
 
     const handleNewTransaction = (newTransaction) => {
+      console.log('Received transaction_created:', newTransaction);
       setTransactions(prev => {
         if (prev.find(t => t._id === newTransaction._id)) return prev;
         return [newTransaction, ...prev];
@@ -176,6 +178,8 @@ export default function Transactions() {
     }
   };
 
+  if (loading) return <TableSkeleton headers={8} rows={10} />;
+
   return (
     <div className="p-2 space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -183,23 +187,15 @@ export default function Transactions() {
           <h2 className="text-3xl font-black text-white tracking-tight">Transactions</h2>
           <p className="text-gray-400 mt-1">Monitor sales and order history</p>
         </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={fetchTransactions}
-            className="p-3 bg-dark-800 rounded-xl text-gray-400 hover:text-white border border-dark-700 hover:border-accent transition-all"
-          >
-            <ArrowPathIcon className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
       </div>
 
       {/* Header & Filter */}
-      <div className="bg-dark-800 p-6 rounded-3xl border border-dark-700 shadow-xl flex flex-col md:flex-row gap-4 md:items-center">
+      <div className="bg-dark-800 p-4 md:p-6 rounded-3xl border border-dark-700 shadow-xl flex flex-row gap-4 items-center">
         <div className="relative flex-1">
           <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input 
             type="text" 
-            placeholder="Search Transaction ID, Customer, or Cashier..." 
+            placeholder="Search transactions..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-dark-900 text-white pl-12 pr-4 py-3 rounded-2xl border border-dark-700 focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all placeholder:text-gray-600"

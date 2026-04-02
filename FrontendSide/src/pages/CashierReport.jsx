@@ -10,6 +10,7 @@ import PrintableReport from "../components/PrintableReport";
 import { useAuth } from "../contexts/AuthContext";
 import { useReactToPrint } from "react-to-print";
 import { useSocket } from "../contexts/SocketContext";
+import ReportSkeleton from "../components/skeletons/ReportSkeleton";
 
 export default function CashierReport() {
   const { user } = useAuth();
@@ -47,6 +48,8 @@ export default function CashierReport() {
     socket.on("transaction_created", handler);
     return () => socket.off("transaction_created", handler);
   }, [socket, period]);
+
+  if (loading) return <ReportSkeleton />;
 
   const formatCurrency = (val) => `₱${Number(val).toLocaleString()}`;
 

@@ -99,14 +99,14 @@ export function NotificationProvider({ children }) {
     }}>
       {children}
       
-      {/* Notification Container - Fixed Top Right */}
-      <div className="fixed top-6 right-6 z-50 flex flex-col gap-4 w-full max-w-sm pointer-events-none">
+      {/* Notification Container - Responsive Positioning */}
+      <div className="fixed top-4 right-4 left-4 sm:left-auto sm:top-6 sm:right-6 z-[9999] flex flex-col gap-3 w-auto sm:w-full sm:max-w-sm pointer-events-none">
         {notifications.map((notification) => (
           <div
             key={notification.id}
             className={`
               pointer-events-auto w-full transform transition-all duration-500 ease-out translate-x-0 opacity-100 animate-slide-in-right
-              flex items-center gap-4 p-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10
+              flex items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-2xl backdrop-blur-xl border border-white/10
               ${
                 notification.type === 'success' 
                   ? 'bg-gradient-to-r from-green-900/90 to-green-800/90 text-green-100 border-green-500/30' 

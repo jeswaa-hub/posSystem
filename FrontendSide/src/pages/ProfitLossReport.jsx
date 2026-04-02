@@ -12,12 +12,14 @@ import PrintableReport from "../components/PrintableReport";
 import { useAuth } from "../contexts/AuthContext";
 import { useReactToPrint } from "react-to-print";
 import { useSocket } from "../contexts/SocketContext";
+import ReportSkeleton from "../components/skeletons/ReportSkeleton";
 
 export default function ProfitLossReport() {
   const { user } = useAuth();
   const socket = useSocket();
   const [period, setPeriod] = useState("month");
   const [data, setData] = useState({ totalRevenue: 0, totalCost: 0, grossProfit: 0, margin: 0 });
+  const [loading, setLoading] = useState(true);
   const componentRef = useRef(null);
 
   const handlePrint = useReactToPrint({
@@ -26,11 +28,14 @@ export default function ProfitLossReport() {
   });
 
   const fetchReport = async () => {
+    setLoading(true);
     try {
       const res = await api.get(`/reports/profit-loss?period=${period}`);
       setData(res.data);
     } catch (err) {
       console.error("Failed to fetch profit/loss report", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,6 +50,8 @@ export default function ProfitLossReport() {
     socket.on("transaction_created", handler);
     return () => socket.off("transaction_created", handler);
   }, [socket, period]);
+
+  if (loading) return <ReportSkeleton />;
 
   const formatCurrency = (val) => `₱${Number(val).toLocaleString()}`;
 

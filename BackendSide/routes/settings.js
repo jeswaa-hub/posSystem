@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const Settings = require("../models/Settings");
+const { verifyToken, verifyTokenAndAdmin } = require("../middleware/authMiddleware");
 
-// Get settings (Create default if none exists)
+// Get settings (Create default if none exists) - Public/Authenticated read
 router.get("/", async (req, res) => {
   try {
     let settings = await Settings.findOne();
@@ -16,8 +17,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Update settings
-router.patch("/", async (req, res) => {
+// Update settings - Admin only
+router.patch("/", verifyTokenAndAdmin, async (req, res) => {
   try {
     let settings = await Settings.findOne();
     if (!settings) {
@@ -25,8 +26,12 @@ router.patch("/", async (req, res) => {
     }
     
     const updates = req.body;
+    const allowedUpdates = ["appName", "appSubtitle", "logoChar", "logoColorStart", "logoColorEnd", "taxRate"];
+    
     Object.keys(updates).forEach(key => {
-      settings[key] = updates[key];
+      if (allowedUpdates.includes(key)) {
+        settings[key] = updates[key];
+      }
     });
 
     await settings.save();

@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
+const { verifyTokenAndAdmin } = require("../middleware/authMiddleware");
 const { Transaction, Product, Inventory, User, Customer } = require("../models");
 const mongoose = require("mongoose");
+
+// Reports are sensitive, admin only
+router.use(verifyTokenAndAdmin);
 
 // Helper to get date range
 const getDateRange = (period) => {

@@ -30,12 +30,14 @@ import {
 } from "@heroicons/react/24/outline";
 import { useNotification } from "../contexts/NotificationContext";
 import api from "../services/api";
+import UsersSkeleton from "../components/skeletons/UsersSkeleton";
 
 export default function Users() {
   const socket = useSocket();
   const { user: currentUser } = useAuth(); // Get current logged-in user
   const { showNotification } = useNotification();
   const [userList, setUserList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -100,12 +102,15 @@ export default function Users() {
   ];
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const res = await api.get("/users");
       setUserList(res.data);
     } catch (err) {
       console.error("Failed to fetch users:", err);
       showNotification("Failed to load user list", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -126,6 +131,11 @@ export default function Users() {
 
     socket.on("user_updated", (updatedUser) => {
       setUserList(prev => prev.map(u => u._id === updatedUser._id ? updatedUser : u));
+      
+      // Conflict detection: If this user is currently being edited
+      if (isModalOpen && selectedUser?._id === updatedUser._id) {
+        showNotification("This user account was modified by another admin.", "warning");
+      }
     });
 
     socket.on("user_deleted", (deletedId) => {
@@ -263,6 +273,8 @@ export default function Users() {
       showNotification("Failed to update user status", "error");
     }
   };
+
+  if (loading) return <UsersSkeleton />;
 
   return (
     <div className="p-2 space-y-8 animate-fade-in">

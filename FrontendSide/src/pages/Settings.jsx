@@ -209,7 +209,7 @@ export default function Settings() {
                 </div>
 
                 {/* Logo Gradient */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-500 uppercase tracking-widest">Gradient Start</label>
                     <div className="flex gap-2 items-center">
@@ -218,14 +218,14 @@ export default function Settings() {
                         name="logoColorStart"
                         value={brandingData.logoColorStart}
                         onChange={handleBrandingChange}
-                        className="h-12 w-16 bg-transparent cursor-pointer rounded-lg border border-dark-700 p-1"
+                        className="h-12 w-16 bg-transparent cursor-pointer rounded-lg border border-dark-700 p-1 flex-shrink-0"
                       />
                       <input
                         type="text"
                         name="logoColorStart"
                         value={brandingData.logoColorStart}
                         onChange={handleBrandingChange}
-                        className="flex-1 bg-dark-900 text-white px-4 py-3 rounded-xl border border-dark-700 focus:border-accent outline-none font-mono text-sm"
+                        className="flex-1 w-full min-w-0 bg-dark-900 text-white px-4 py-3 rounded-xl border border-dark-700 focus:border-accent outline-none font-mono text-sm"
                       />
                     </div>
                   </div>
@@ -237,21 +237,21 @@ export default function Settings() {
                         name="logoColorEnd"
                         value={brandingData.logoColorEnd}
                         onChange={handleBrandingChange}
-                        className="h-12 w-16 bg-transparent cursor-pointer rounded-lg border border-dark-700 p-1"
+                        className="h-12 w-16 bg-transparent cursor-pointer rounded-lg border border-dark-700 p-1 flex-shrink-0"
                       />
                       <input
                         type="text"
                         name="logoColorEnd"
                         value={brandingData.logoColorEnd}
                         onChange={handleBrandingChange}
-                        className="flex-1 bg-dark-900 text-white px-4 py-3 rounded-xl border border-dark-700 focus:border-accent outline-none font-mono text-sm"
+                        className="flex-1 w-full min-w-0 bg-dark-900 text-white px-4 py-3 rounded-xl border border-dark-700 focus:border-accent outline-none font-mono text-sm"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Preview Section */}
-                <div className="mt-8 p-6 bg-dark-900 rounded-2xl border border-dark-700 flex items-center justify-between">
+                <div className="mt-8 p-6 bg-dark-900 rounded-2xl border border-dark-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 relative flex items-center justify-center">
                       <div 
