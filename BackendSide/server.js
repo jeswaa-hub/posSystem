@@ -20,6 +20,9 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 const server = http.createServer(app);
 
+// Trust proxy (Required for express-rate-limit behind reverse proxies like Render)
+app.set("trust proxy", 1);
+
 const allowedOrigins = [
   "http://localhost:5173", 
   "http://127.0.0.1:5173", 
