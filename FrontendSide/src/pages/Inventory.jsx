@@ -67,10 +67,10 @@ export default function Inventory() {
         stock: Number(ingredientForm.stock)
       };
 
-      const prodRes = await api.post("/products", productPayload);
+      const prodRes = await api.post("products", productPayload);
       const newProduct = prodRes.data;
 
-      await api.post("/inventory", {
+      await api.post("inventory", {
         product: newProduct._id,
         stockOnHand: Number(ingredientForm.stock),
         reorderPoint: 5,
@@ -107,7 +107,7 @@ export default function Inventory() {
 
   const fetchInventory = async () => {
     try {
-      const res = await api.get("/inventory");
+      const res = await api.get("inventory");
       setInventory(res.data);
     } catch (err) {
       console.error("Failed to fetch inventory:", err);
@@ -239,7 +239,7 @@ export default function Inventory() {
       }));
       setIsAdjustModalOpen(false);
 
-      await api.post("/inventory/adjust", {
+      await api.post("inventory/adjust", {
         productId: selectedItem.product._id,
         adjustmentQty: qty,
         type: adjustForm.type,

@@ -94,7 +94,7 @@ export default function Transactions() {
 
   const fetchTransactions = async () => {
     try {
-      const res = await api.get("/transactions");
+      const res = await api.get("transactions");
       setTransactions(res.data);
     } catch (err) {
       console.error("Failed to fetch transactions:", err);

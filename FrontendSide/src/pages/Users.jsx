@@ -104,7 +104,7 @@ export default function Users() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/users");
+      const res = await api.get("users");
       setUserList(res.data);
     } catch (err) {
       console.error("Failed to fetch users:", err);
@@ -210,7 +210,7 @@ export default function Users() {
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/users/register", addFormData);
+      await api.post("users/register", addFormData);
       // Removed manual state update: socket handles it
       setIsAddModalOpen(false);
       setAddFormData({

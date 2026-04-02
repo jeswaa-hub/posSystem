@@ -84,7 +84,7 @@ export default function POS() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/products");
+      const res = await api.get("products");
       // Only show active products in POS
       setProducts(res.data.filter(p => p.status === 'active'));
     } catch (err) {
@@ -161,7 +161,7 @@ export default function POS() {
         cashier: cashierId
       };
 
-      await api.post("/transactions", payload);
+      await api.post("transactions", payload);
       
       showNotification("Order placed successfully!", "success");
       setCart([]);

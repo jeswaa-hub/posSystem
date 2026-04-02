@@ -20,9 +20,15 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = [
+  "http://localhost:5173", 
+  "http://127.0.0.1:5173", 
+  "https://pos-system-psi-teal.vercel.app"
+];
+
 // 1. CORS MUST be the very first middleware to handle preflight requests
 app.use(cors({
-  origin: ["http://localhost:5173", "http://127.0.0.1:5173"], 
+  origin: allowedOrigins, 
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
@@ -51,7 +57,7 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"], 
+    origin: allowedOrigins, 
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"]

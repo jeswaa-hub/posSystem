@@ -1,9 +1,10 @@
 import axios from "axios";
 
 const api = axios.create({
-  // [PRODUCTION_ELEMENT_REMOVED]: Hardcoded production fallback URL moved to ForProduction.md
-  // Timestamp: 2026-03-08 | Reason: Centralizing production URLs in ForProduction.md.
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  // Ensure baseURL ends with /api/ for consistent relative path calls
+  baseURL: (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/$/, "").endsWith("/api")
+    ? (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/$/, "") + "/"
+    : (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/$/, "") + "/api/",
   headers: { "Content-Type": "application/json" },
 });
 

@@ -29,8 +29,8 @@ export function SettingsProvider({ children }) {
   const fetchData = async () => {
     try {
       const [settingsRes, categoriesRes] = await Promise.all([
-        api.get("/settings"),
-        api.get("/categories")
+        api.get("settings"),
+        api.get("categories")
       ]);
 
       if (settingsRes.data) {
@@ -83,7 +83,7 @@ export function SettingsProvider({ children }) {
 
   const updateBranding = async (newBranding) => {
     try {
-      const res = await api.patch("/settings", newBranding);
+      const res = await api.patch("settings", newBranding);
       // Immediate update for better UX
       setSettings(res.data);
       return res.data;
@@ -95,7 +95,7 @@ export function SettingsProvider({ children }) {
 
   const addCategory = async (name) => {
     try {
-      const res = await api.post("/categories", { name });
+      const res = await api.post("categories", { name });
       // Immediate update for better UX
       setCategories(prev => {
         if (prev.find(c => c._id === res.data._id)) return prev;
@@ -110,7 +110,7 @@ export function SettingsProvider({ children }) {
 
   const removeCategory = async (id) => {
     try {
-      await api.delete(`/categories/${id}`);
+      await api.delete(`categories/${id}`);
       // Immediate update for better UX
       setCategories(prev => prev.filter(c => c._id !== id));
     } catch (err) {

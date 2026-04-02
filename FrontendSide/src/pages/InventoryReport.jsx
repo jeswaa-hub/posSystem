@@ -28,9 +28,9 @@ export default function InventoryReport() {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/reports/inventory");
+      const res = await api.get("reports/inventory");
       // Fetch full inventory for print table
-      const fullInv = await api.get("/inventory");
+      const fullInv = await api.get("inventory");
       setData({ ...res.data, items: fullInv.data });
     } catch (err) {
       console.error("Failed to fetch inventory report", err);

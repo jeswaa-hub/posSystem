@@ -38,7 +38,7 @@ export default function AddProduct() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await api.get("/products");
+        const response = await api.get("products");
         setProducts(response.data);
       } catch (err) {
         console.error("Failed to fetch products for SKU generation:", err);
@@ -194,7 +194,7 @@ export default function AddProduct() {
 
     setLoading(true);
     try {
-      await api.post("/products", formData);
+      await api.post("products", formData);
       showNotification("Product created successfully!", "success");
       localStorage.removeItem("draft_product");
       navigate("/products/all");
